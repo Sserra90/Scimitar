@@ -1,0 +1,1 @@
+include ':app', ':scimitar-annotations', ':scimitar-processor', ':scimitar-runtime'
