@@ -7,8 +7,13 @@ import java.lang.annotation.Target;
 
 /**
  * Bind a field to the specified ViewModel class
+ * <pre><code>
+ * {@literal @}BindViewModel(SomeViewModel.class) BindViewModel vm;
+ * {@literal @}BindViewModel() BindViewModel vm;
+ * </code></pre>
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface BindViewModel {
+    Class value();
 }
