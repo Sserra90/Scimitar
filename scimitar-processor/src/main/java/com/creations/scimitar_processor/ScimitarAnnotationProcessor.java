@@ -20,6 +20,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.MirroredTypeException;
@@ -28,6 +29,8 @@ import javax.lang.model.util.ElementFilter;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 
+import static java.lang.reflect.Modifier.PRIVATE;
+import static java.lang.reflect.Modifier.STATIC;
 import static javax.tools.Diagnostic.Kind.WARNING;
 
 /**
@@ -35,6 +38,9 @@ import static javax.tools.Diagnostic.Kind.WARNING;
  */
 @AutoService(Processor.class)
 public class ScimitarAnnotationProcessor extends AbstractProcessor {
+
+    private static final String SCIMITAR_SUFFIX = "_Scimitar";
+    private static final String CONST_PARAM_TARGET_NAME = "target";
 
     private Messager mMessager;
     private Filer mFiler;
@@ -61,27 +67,52 @@ public class ScimitarAnnotationProcessor extends AbstractProcessor {
     }
 
     @Override
-    public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
+    public boolean process(Set<? extends TypeElement> set, RoundEnvironment env) {
         mMessager.printMessage(WARNING, "Process");
 
-        /*for(Element el : roundEnvironment.getElementsAnnotatedWith(BindViewModel.class)){
-            mMessager.printMessage(WARNING,"Found el: "+el);
-            mMessager.printMessage(WARNING,"Element type: "+el.getSimpleName());
-
-        }*/
-
-        final Set<? extends Element> elements = roundEnvironment.getElementsAnnotatedWith(BindViewModel.class);
-        final Set<VariableElement> fields = ElementFilter.fieldsIn(elements);
+        final Set<VariableElement> fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(BindViewModel.class));
         for (VariableElement field : fields) {
-            String fullTypeClassName = field.asType().toString();
-
-            printWarning("Found el: " + field);
-            printWarning("Element type: " + fullTypeClassName);
-
-            printWarning("Type: " + getValue(field.getAnnotation(BindViewModel.class)));
+            parseBindViewModel(field);
         }
 
         return true;
+    }
+
+    private void parseBindViewModel(VariableElement field) {
+
+        printWarning("Name: " + field.getSimpleName());
+        printWarning("Type: " + getValue(field.getAnnotation(BindViewModel.class)));
+        printWarning("Enclosing element: " + field.getEnclosingElement().toString());
+
+        if (!checkFieldAccessible(BindViewModel.class, field)) {
+            return;
+        }
+
+
+
+    }
+
+    private boolean checkFieldAccessible(Class<? extends Annotation> annotationClass, Element element) {
+        boolean hasError = false;
+
+        final TypeElement enclosingElement = (TypeElement) element.getEnclosingElement();
+
+        // Verify field modifiers
+        final Set<Modifier> modifiers = element.getModifiers();
+        if (modifiers.contains(Modifier.PRIVATE) || modifiers.contains(Modifier.STATIC)) {
+            printError(
+                    String.format(
+                            "@%s %s must not be private or static. (%s.%s)",
+                            annotationClass.getSimpleName(),
+                            "fields",
+                            enclosingElement.getQualifiedName(),
+                            element.getSimpleName()
+                    )
+            );
+            hasError = true;
+        }
+
+        return hasError;
     }
 
     @Override
