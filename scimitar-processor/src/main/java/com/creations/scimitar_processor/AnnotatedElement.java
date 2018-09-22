@@ -30,8 +30,8 @@ public class AnnotatedElement {
         return element.getSimpleName();
     }
 
-    public Element getEnclosingElement() {
-        return element.getEnclosingElement();
+    public TypeElement getEnclosingElement() {
+        return (TypeElement) element.getEnclosingElement();
     }
 
     // Just using an hack to get the Class type

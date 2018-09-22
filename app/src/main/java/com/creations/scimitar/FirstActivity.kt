@@ -6,10 +6,10 @@ import androidx.appcompat.app.AppCompatActivity
 import com.creations.scimitar_annotations.BindViewModel
 import com.creations.scimitar_runtime.Scimitar
 
-open class MainActivity : AppCompatActivity() {
+open class FirstActivity : AppCompatActivity() {
 
     companion object {
-        const val TAG = "MainActivity"
+        const val TAG = "FirstActivity"
     }
 
     @BindViewModel(MyViewModel::class)

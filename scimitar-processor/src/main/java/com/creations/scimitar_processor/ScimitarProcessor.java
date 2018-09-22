@@ -11,8 +11,11 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -26,6 +29,8 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import javax.lang.model.util.Elements;
@@ -120,31 +125,44 @@ public class ScimitarProcessor extends AbstractProcessor {
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment env) {
         mMessager.printMessage(WARNING, "Process");
 
+        final Map<TypeElement, List<AnnotatedElement>> bindingsMap = new HashMap<>();
         final List<AnnotatedElement> annotatedElements = new ArrayList<>();
 
         // Parse @BindViewModel annotated fields
         final Set<VariableElement> fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(BindViewModel.class));
         for (VariableElement field : fields) {
-            parseBindViewModel(field, annotatedElements);
+            parseBindViewModel(field, annotatedElements, bindingsMap);
         }
 
-        // Generate classes
-        try {
-            generateClasses(annotatedElements);
-        } catch (IOException e) {
-            e.printStackTrace();
+        // Parse superclasses
+        for (TypeElement el : bindingsMap.keySet()) {
+            findParent(el, bindingsMap.get(el), bindingsMap);
         }
+
+        warning("\nFinal bindings: " + prettyPrint(bindingsMap));
+
+        // Generate classes
+        generateClasses(bindingsMap);
 
         return true;
     }
 
-    private void parseBindViewModel(VariableElement field, List<AnnotatedElement> annotatedElements) {
+    private void parseBindViewModel(VariableElement field,
+                                    List<AnnotatedElement> annotatedElements,
+                                    Map<TypeElement, List<AnnotatedElement>> bindingsMap) {
         warning("Name: " + field.getSimpleName());
         warning("Type: " + getValue(field.getAnnotation(BindViewModel.class)));
         warning("Enclosing element: " + field.getEnclosingElement().toString());
 
         if (checkFieldAccessible(BindViewModel.class, field)) {
-            annotatedElements.add(new AnnotatedElement(field));
+
+            final AnnotatedElement el = new AnnotatedElement(field);
+            if (!bindingsMap.containsKey(el.getEnclosingElement())) {
+                bindingsMap.put(el.getEnclosingElement(), new ArrayList<>());
+            }
+            bindingsMap.get(el.getEnclosingElement()).add(el);
+
+            annotatedElements.add(el);
         }
     }
 
@@ -199,30 +217,59 @@ public class ScimitarProcessor extends AbstractProcessor {
         return false;
     }
 
-    private void generateClasses(List<AnnotatedElement> elements) throws IOException {
-        for (AnnotatedElement element : elements) {
-            MethodSpec constructor = createBindingConstructor(element.getEnclosingElement().toString(), element);
-            TypeSpec binder = createClass(element.getEnclosingElement().getSimpleName().toString(), constructor);
-            JavaFile javaFile = JavaFile.builder(getPackage(element.getEnclosingElement().toString()), binder).build();
-            javaFile.writeTo(mFiler);
-            warning("Generate java class for element: " + element);
+    private void findParent(TypeElement type,
+                            List<AnnotatedElement> elements,
+                            Map<TypeElement, List<AnnotatedElement>> bindings) {
+
+        TypeMirror typeMirror = type.getSuperclass();
+        if (typeMirror.getKind() == TypeKind.NONE) {
+            return;
         }
+
+        TypeElement parentType = (TypeElement) ((DeclaredType) typeMirror).asElement();
+        List<AnnotatedElement> parentElements = bindings.get(parentType);
+        if (parentElements != null) {
+            elements.addAll(parentElements);
+        }
+
+        findParent(parentType, elements, bindings);
     }
 
-    private MethodSpec createBindingConstructor(String targetTypeName, AnnotatedElement el) {
+    private void generateClasses(Map<TypeElement, List<AnnotatedElement>> bindings) {
+        bindings.forEach((typeElement, annotatedElements) -> {
+            try {
+                writeClass(typeElement, annotatedElements);
+            } catch (IOException e) {
+                error(e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private void writeClass(TypeElement typeElement, List<AnnotatedElement> annotatedElements) throws IOException {
+        MethodSpec constructor = createBindingConstructor(typeElement.toString(), annotatedElements);
+        TypeSpec binder = createClass(typeElement.getSimpleName().toString(), constructor);
+        JavaFile javaFile = JavaFile.builder(getPackage(typeElement.toString()), binder).build();
+        javaFile.writeTo(mFiler);
+        warning("Generated java class: " + typeElement.getSimpleName() + SCIMITAR_SUFFIX);
+    }
+
+    private MethodSpec createBindingConstructor(String targetTypeName, List<AnnotatedElement> annotatedElements) {
         MethodSpec.Builder builder = MethodSpec.constructorBuilder()
                 .addModifiers(PUBLIC)
                 .addParameter(ClassName.bestGuess(targetTypeName), PARAM_TARGET_NAME);
 
         // Generates something like the following:
         // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
-        builder.addStatement(BIND_STATEMENT,
-                PARAM_TARGET_NAME,
-                el.getName(),
-                useAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
-                PARAM_TARGET_NAME,
-                el.getValue().toString() + CLASS_SUFFIX
-        );
+        for (AnnotatedElement el : annotatedElements) {
+            builder.addStatement(BIND_STATEMENT,
+                    PARAM_TARGET_NAME,
+                    el.getName(),
+                    useAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
+                    PARAM_TARGET_NAME,
+                    el.getValue().toString() + CLASS_SUFFIX
+            );
+        }
 
         return builder.build();
     }
@@ -236,5 +283,34 @@ public class ScimitarProcessor extends AbstractProcessor {
 
     private String getPackage(String qualifier) {
         return qualifier.substring(0, qualifier.lastIndexOf("."));
+    }
+
+    private <K, V> String prettyPrint(Map<K, V> map) {
+        return new PrettyPrintingMap<>(map).toString();
+    }
+
+    public static class PrettyPrintingMap<K, V> {
+        private Map<K, V> map;
+
+        public PrettyPrintingMap(Map<K, V> map) {
+            this.map = map;
+        }
+
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            Iterator<Map.Entry<K, V>> iter = map.entrySet().iterator();
+            while (iter.hasNext()) {
+                Map.Entry<K, V> entry = iter.next();
+                sb.append(entry.getKey());
+                sb.append('=').append('"');
+                sb.append(entry.getValue());
+                sb.append('"');
+                if (iter.hasNext()) {
+                    sb.append(',').append(' ');
+                }
+            }
+            return sb.toString();
+
+        }
     }
 }
