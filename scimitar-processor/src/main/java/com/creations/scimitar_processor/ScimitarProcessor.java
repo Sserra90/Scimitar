@@ -45,47 +45,63 @@ public class ScimitarProcessor extends AbstractProcessor {
 
     private static final String SCIMITAR_SUFFIX = "$$Scimitar";
     private static final String PARAM_TARGET_NAME = "target";
-    private static final String ACTIVITY_TYPE = "android.app.Activity";
+    private static final String ACTIVITY_TYPE = "android.support.v4.app.FragmentActivity";
+    private static final String ACTIVITY_TYPE_ANDROID_X = "androidx.fragment.app.FragmentActivity";
     private static final String FRAGMENT_TYPE = "android.app.Fragment";
-    private static final String VIEW_TYPE = "android.view.View";
     private static final String CLASS_SUFFIX = ".class";
 
     // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
     private static final String BIND_STATEMENT = "$L.$L = $T.of($L).get($L)";
-    private static final ClassName VIEW_MODEL_PROVIDER_CLASS = ClassName.get("androidx.lifecycle", "ViewModelProviders");
+    private static final ClassName VIEW_MODEL_PROVIDER_CLASS_ANDROID_X
+            = ClassName.get("androidx.lifecycle", "ViewModelProviders");
+    private static final ClassName VIEW_MODEL_PROVIDER_CLASS
+            = ClassName.get("android.arch.lifecycle", "ViewModelProviders");
 
     private static final Set<String> allowedEnclosingTypes = new HashSet<>();
-
-    static {
-        allowedEnclosingTypes.add(ACTIVITY_TYPE);
-        allowedEnclosingTypes.add(FRAGMENT_TYPE);
-        allowedEnclosingTypes.add(VIEW_TYPE);
-    }
 
     private Messager mMessager;
     private Filer mFiler;
     private Types mTypeUtils;
     private Elements mElements;
 
+    private boolean useAndroidX = false;
+
     public ScimitarProcessor() {
         super();
     }
 
-    private void printError(String msg) {
+    private void error(String msg) {
         mMessager.printMessage(Diagnostic.Kind.ERROR, msg);
     }
 
-    private void printWarning(String msg) {
+    private void warning(String msg) {
         mMessager.printMessage(Diagnostic.Kind.WARNING, msg);
     }
 
     @Override
-    public synchronized void init(ProcessingEnvironment processingEnv) {
-        super.init(processingEnv);
-        mMessager = processingEnv.getMessager();
-        mFiler = processingEnv.getFiler();
-        mTypeUtils = processingEnv.getTypeUtils();
-        mElements = processingEnv.getElementUtils();
+    public synchronized void init(ProcessingEnvironment env) {
+        super.init(env);
+        mMessager = env.getMessager();
+        mFiler = env.getFiler();
+        mTypeUtils = env.getTypeUtils();
+        mElements = env.getElementUtils();
+        useAndroidX = hasAndroidX(mElements);
+
+        warning("Using androidX: " + useAndroidX);
+        allowedEnclosingTypes.add(useAndroidX ? ACTIVITY_TYPE_ANDROID_X : ACTIVITY_TYPE);
+        allowedEnclosingTypes.add(FRAGMENT_TYPE);
+    }
+
+    /**
+     * Perform two lookups to see if the androidx annotation and core libraries are on the application
+     * classpath.
+     */
+    private static boolean hasAndroidX(Elements elementUtils) {
+        boolean annotationsPresent
+                = elementUtils.getTypeElement("androidx.annotation.NonNull") != null;
+        boolean corePresent
+                = elementUtils.getTypeElement("androidx.core.content.ContextCompat") != null;
+        return annotationsPresent && corePresent;
     }
 
     @Override
@@ -123,9 +139,9 @@ public class ScimitarProcessor extends AbstractProcessor {
     }
 
     private void parseBindViewModel(VariableElement field, List<AnnotatedElement> annotatedElements) {
-        printWarning("Name: " + field.getSimpleName());
-        printWarning("Type: " + getValue(field.getAnnotation(BindViewModel.class)));
-        printWarning("Enclosing element: " + field.getEnclosingElement().toString());
+        warning("Name: " + field.getSimpleName());
+        warning("Type: " + getValue(field.getAnnotation(BindViewModel.class)));
+        warning("Enclosing element: " + field.getEnclosingElement().toString());
 
         if (checkFieldAccessible(BindViewModel.class, field)) {
             annotatedElements.add(new AnnotatedElement(field));
@@ -140,7 +156,7 @@ public class ScimitarProcessor extends AbstractProcessor {
         // Verify field modifiers
         final Set<Modifier> modifiers = element.getModifiers();
         if (modifiers.contains(Modifier.PRIVATE) || modifiers.contains(Modifier.STATIC)) {
-            printError(
+            error(
                     String.format(
                             "@%s %s must not be private or static. (%s.%s)",
                             annotationClass.getSimpleName(),
@@ -153,7 +169,7 @@ public class ScimitarProcessor extends AbstractProcessor {
         }
 
         if (enclosingElement.getKind() != CLASS) {
-            printError(
+            error(
                     String.format("@%s %s may only be contained in classes. (%s.%s)",
                             annotationClass.getSimpleName(),
                             "fields",
@@ -165,7 +181,7 @@ public class ScimitarProcessor extends AbstractProcessor {
 
         // Check enclosing type
         if (!isEnclosingTypeValid(element)) {
-            printError("Enclosing element is not valid. Should be one of: " + allowedEnclosingTypes);
+            error("Enclosing element is not valid. Should be one of: " + allowedEnclosingTypes);
             isValid = false;
         }
 
@@ -189,7 +205,7 @@ public class ScimitarProcessor extends AbstractProcessor {
             TypeSpec binder = createClass(element.getEnclosingElement().getSimpleName().toString(), constructor);
             JavaFile javaFile = JavaFile.builder(getPackage(element.getEnclosingElement().toString()), binder).build();
             javaFile.writeTo(mFiler);
-            printWarning("Generate java class for element: " + element);
+            warning("Generate java class for element: " + element);
         }
     }
 
@@ -203,7 +219,7 @@ public class ScimitarProcessor extends AbstractProcessor {
         builder.addStatement(BIND_STATEMENT,
                 PARAM_TARGET_NAME,
                 el.getName(),
-                VIEW_MODEL_PROVIDER_CLASS,
+                useAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
                 PARAM_TARGET_NAME,
                 el.getValue().toString() + CLASS_SUFFIX
         );

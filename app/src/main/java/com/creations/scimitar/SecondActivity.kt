@@ -6,20 +6,20 @@ import androidx.appcompat.app.AppCompatActivity
 import com.creations.scimitar_annotations.BindViewModel
 import com.creations.scimitar_runtime.Scimitar
 
-open class MainActivity : AppCompatActivity() {
+class SecondActivity : MainActivity() {
 
     companion object {
-        const val TAG = "MainActivity"
+        const val TAG = "SecondActivity"
     }
 
-    @BindViewModel(MyViewModel::class)
-    lateinit var vm: MyViewModel
+    @BindViewModel(SecondViewModel::class)
+    lateinit var secondVm: SecondViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        Scimitar.bind(this)
+        //Scimitar.bind(this)
 
         Log.d(TAG,"Vm injected: $vm")
     }
