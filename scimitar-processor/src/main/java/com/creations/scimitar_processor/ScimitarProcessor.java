@@ -43,7 +43,7 @@ import static javax.xml.bind.JAXBIntrospector.getValue;
 @AutoService(Processor.class)
 public class ScimitarProcessor extends AbstractProcessor {
 
-    private static final String SCIMITAR_SUFFIX = "_Scimitar";
+    private static final String SCIMITAR_SUFFIX = "$$Scimitar";
     private static final String PARAM_TARGET_NAME = "target";
     private static final String ACTIVITY_TYPE = "android.app.Activity";
     private static final String FRAGMENT_TYPE = "android.app.Fragment";
@@ -51,7 +51,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     private static final String CLASS_SUFFIX = ".class";
 
     // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
-    private static final String VIEW_MODEL_PROVIDER = "$L.$L = $T.of($L).get($L)";
+    private static final String BIND_STATEMENT = "$L.$L = $T.of($L).get($L)";
     private static final ClassName VIEW_MODEL_PROVIDER_CLASS = ClassName.get("androidx.lifecycle", "ViewModelProviders");
 
     private static final Set<String> allowedEnclosingTypes = new HashSet<>();
@@ -200,7 +200,7 @@ public class ScimitarProcessor extends AbstractProcessor {
 
         // Generates something like the following:
         // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
-        builder.addStatement(VIEW_MODEL_PROVIDER,
+        builder.addStatement(BIND_STATEMENT,
                 PARAM_TARGET_NAME,
                 el.getName(),
                 VIEW_MODEL_PROVIDER_CLASS,
