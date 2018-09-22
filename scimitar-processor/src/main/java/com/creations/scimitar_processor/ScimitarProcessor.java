@@ -5,7 +5,6 @@ import com.google.auto.service.AutoService;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import java.io.IOException;
@@ -24,7 +23,6 @@ import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementVisitor;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
@@ -46,10 +44,15 @@ import static javax.xml.bind.JAXBIntrospector.getValue;
 public class ScimitarProcessor extends AbstractProcessor {
 
     private static final String SCIMITAR_SUFFIX = "_Scimitar";
-    private static final String CONST_PARAM_TARGET_NAME = "target";
+    private static final String PARAM_TARGET_NAME = "target";
     private static final String ACTIVITY_TYPE = "android.app.Activity";
     private static final String FRAGMENT_TYPE = "android.app.Fragment";
     private static final String VIEW_TYPE = "android.view.View";
+    private static final String CLASS_SUFFIX = ".class";
+
+    // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
+    private static final String VIEW_MODEL_PROVIDER = "$L.$L = $T.of($L).get($L)";
+    private static final ClassName VIEW_MODEL_PROVIDER_CLASS = ClassName.get("androidx.lifecycle", "ViewModelProviders");
 
     private static final Set<String> allowedEnclosingTypes = new HashSet<>();
 
@@ -182,7 +185,7 @@ public class ScimitarProcessor extends AbstractProcessor {
 
     private void generateClasses(List<AnnotatedElement> elements) throws IOException {
         for (AnnotatedElement element : elements) {
-            MethodSpec constructor = createBindingConstructor(element.getEnclosingElement().toString());
+            MethodSpec constructor = createBindingConstructor(element.getEnclosingElement().toString(), element);
             TypeSpec binder = createClass(element.getEnclosingElement().getSimpleName().toString(), constructor);
             JavaFile javaFile = JavaFile.builder(getPackage(element.getEnclosingElement().toString()), binder).build();
             javaFile.writeTo(mFiler);
@@ -190,10 +193,20 @@ public class ScimitarProcessor extends AbstractProcessor {
         }
     }
 
-    private MethodSpec createBindingConstructor(String targetTypeName) {
+    private MethodSpec createBindingConstructor(String targetTypeName, AnnotatedElement el) {
         MethodSpec.Builder builder = MethodSpec.constructorBuilder()
                 .addModifiers(PUBLIC)
-                .addParameter(ClassName.bestGuess(targetTypeName), "target");
+                .addParameter(ClassName.bestGuess(targetTypeName), PARAM_TARGET_NAME);
+
+        // Generates something like the following:
+        // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
+        builder.addStatement(VIEW_MODEL_PROVIDER,
+                PARAM_TARGET_NAME,
+                el.getName(),
+                VIEW_MODEL_PROVIDER_CLASS,
+                PARAM_TARGET_NAME,
+                el.getValue().toString() + CLASS_SUFFIX
+        );
 
         return builder.build();
     }
