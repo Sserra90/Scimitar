@@ -297,7 +297,7 @@ public class ScimitarProcessor extends AbstractProcessor {
 
         for (AnnotatedElement el : annotatedElements) {
 
-            final AnnotatedElement factory = factoryBindings.get(el.getEnclosingElement());
+            final AnnotatedElement factory = findViewModelFactory(el, factoryBindings);
             if (factory != null) {
                 builder.addStatement(BIND_STATEMENT_WITH_FACTORY,
                         PARAM_TARGET_NAME,
@@ -320,6 +320,34 @@ public class ScimitarProcessor extends AbstractProcessor {
         }
 
         return builder.build();
+    }
+
+    private AnnotatedElement findViewModelFactory(AnnotatedElement el, Map<TypeElement, AnnotatedElement> factoryBindings) {
+
+        // If there's one specified in the enclosing class use it.
+        final AnnotatedElement factory = factoryBindings.get(el.getEnclosingElement());
+        if (factory != null) {
+            return factory;
+        }
+
+        // Traverse class hierarchy to look for a @ViewModelFactory annotated field with "useAsDefault"
+        return findParentFactory(el.getEnclosingElement(), factoryBindings);
+    }
+
+    private AnnotatedElement findParentFactory(TypeElement el, Map<TypeElement, AnnotatedElement> factoryBindings) {
+        // Traverse class hierarchy to look for a @ViewModelFactory annotated field with "useAsDefault"
+        TypeMirror typeMirror = el.getSuperclass();
+        if (typeMirror.getKind() == TypeKind.NONE) {
+            return null;
+        }
+
+        TypeElement parentType = (TypeElement) ((DeclaredType) typeMirror).asElement();
+        FactoryAnnotatedElement parentFactory = (FactoryAnnotatedElement) factoryBindings.get(parentType);
+        if (parentFactory != null && parentFactory.useAsDefault()) {
+            return parentFactory;
+        }
+
+        return findParentFactory(parentType, factoryBindings);
     }
 
     private TypeSpec createClass(String className, MethodSpec constructor) {
