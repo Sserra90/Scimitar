@@ -2,8 +2,6 @@ package com.creations.scimitar_processor;
 
 import com.creations.scimitar_annotations.BindViewModel;
 import com.creations.scimitar_annotations.ViewModelFactory;
-import com.creations.scimitar_annotations.state.OnError;
-import com.creations.scimitar_annotations.state.OnLoading;
 import com.creations.scimitar_annotations.state.OnSuccess;
 import com.creations.scimitar_annotations.state.ResourceObserver;
 import com.creations.scimitar_processor.elements.AnnotatedElement;
@@ -26,8 +24,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
@@ -167,12 +167,14 @@ public class ScimitarProcessor extends AbstractProcessor {
             parseResourceObserver(field, observerBindings);
         }
 
-        Set<ExecutableElement> methods = new HashSet<>();
+        // Parse @OnSuccess, @OnError and @OnLoading annotated methods
+        final Set<ExecutableElement> methods = new HashSet<>();
         methods.addAll(ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnSuccess.class)));
-        methods.addAll(ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnError.class)));
-        methods.addAll(ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnLoading.class)));
+        //methods.addAll(ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnError.class)));
+        //methods.addAll(ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnLoading.class)));
         for (ExecutableElement method : methods) {
-            parseResourceMethod(method, resourceBindings);
+            //parseResourceMethod(method, resourceBindings);
+            parseOnSuccessMethod(method, observerBindings, resourceBindings);
         }
 
         warning("\nFactory bindings: " + prettyPrint(factoryBindings));
@@ -230,30 +232,74 @@ public class ScimitarProcessor extends AbstractProcessor {
         }
     }
 
-    private void parseResourceMethod(ExecutableElement method, Map<TypeElement, Map<String, ResourceSet>> resourceBindings) {
-        warning("\nParse method: " + method + " for: " + method.getAnnotationMirrors());
+    private void parseOnSuccessMethod(ExecutableElement method,
+                                      Map<TypeElement, List<AnnotatedElement>> observers,
+                                      Map<TypeElement, Map<String, ResourceSet>> resourceBindings) {
 
-        final MethodElement el = MethodElement.create(method);
-        final TypeElement enclosing = el.getEnclosingElement();
+        warning("\nParse onSuccess method: " + method);
 
-        final Map<String, ResourceSet> bindings = resourceBindings.containsKey(enclosing)
-                ? resourceBindings.get(enclosing)
+        final MethodElement methodEl = MethodElement.create(method);
+        final TypeElement enclosing = methodEl.getEnclosingElement();
+
+        // Check class has @ResourceObserver annotated fields
+        if (!observers.containsKey(enclosing)) {
+            error(String.format("No @ResourceObserver annotated fields were found in class: %s", enclosing));
+        }
+
+        // Find @ResourceObserver annotated field with the same id
+        final List<AnnotatedElement> resObservers = findResourceObserversForId(observers.get(enclosing), methodEl.getId());
+        if (resObservers.isEmpty()) {
+            error(String.format("No @ResourceObserver annotated fields were found in class: %s " +
+                    "for id: %s", enclosing, methodEl.getId())
+            );
+        }
+
+        // Check parameter is valid
+        final int paramsNr = method.getParameters().size();
+        if (paramsNr > 1) {
+            error(String.format(Locale.US,
+                    "Incorrect number of parameters for method %s, %d parameters found.",
+                    method, paramsNr)
+            );
+        } else if (paramsNr == 1) {
+
+            final TypeMirror paramType = method.getParameters().get(0).asType();
+            final TypeMirror resType = ((ResourceAnnotatedElement) resObservers.get(0)).getType();
+
+            if (!mTypeUtils.isSameType(paramType, resType)) {
+                error(String.format(
+                        Locale.US,
+                        "Type mismatch. " +
+                                "@ResourceObserver field %s has type %s, @OnSuccess method %s expects %s",
+                        resObservers.get(0).getName(), resType, method, paramType
+                ));
+            }
+        }
+
+        addMethod(methodEl, resourceBindings);
+    }
+
+    private List<AnnotatedElement> findResourceObserversForId(List<AnnotatedElement> resObservers, String id) {
+        if (resObservers == null) {
+            return new ArrayList<>();
+        }
+        return resObservers.stream()
+                .filter(e -> ((ResourceAnnotatedElement) e).getId().equals(id))
+                .collect(Collectors.toList());
+    }
+
+    private void addMethod(MethodElement method, Map<TypeElement, Map<String, ResourceSet>> resourceBindings) {
+        final Map<String, ResourceSet> bindings = resourceBindings.containsKey(method.getEnclosingElement())
+                ? resourceBindings.get(method.getEnclosingElement())
                 : new HashMap<>();
 
-        final ResourceSet resourceSet = bindings.containsKey(el.getId())
-                ? bindings.get(el.getId())
+        final ResourceSet resourceSet = bindings.containsKey(method.getId())
+                ? bindings.get(method.getId())
                 : new ResourceSet();
 
-        resourceSet.addMethod(el);
-        bindings.put(el.getId(), resourceSet);
-        resourceBindings.put(enclosing, bindings);
-
-        /*method.getParameters().forEach(new Consumer<VariableElement>() {
-            @Override
-            public void accept(VariableElement vl) {
-                warning("Param: " + vl.asType());
-            }
-        });*/
+        resourceSet.addMethod(method);
+        bindings.put(method.getId(), resourceSet);
+        resourceBindings.put(method.getEnclosingElement(), bindings);
     }
 
     private boolean checkFieldAccessible(Class<? extends Annotation> annotationClass, Element element) {
