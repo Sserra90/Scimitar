@@ -1,10 +1,10 @@
-package com.creations.scimitar_processor;
+package com.creations.scimitar_processor.elements;
 
 import javax.lang.model.element.Element;
 
-class ViewModelAnnotatedElement extends AnnotatedElement {
+public class ViewModelAnnotatedElement extends AnnotatedElement {
 
-    ViewModelAnnotatedElement(Element element) {
+    public ViewModelAnnotatedElement(Element element) {
         super(element);
     }
 

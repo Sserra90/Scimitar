@@ -1,4 +1,4 @@
-package com.creations.scimitar_processor;
+package com.creations.scimitar_processor.elements;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Name;
@@ -13,7 +13,7 @@ public abstract class AnnotatedElement {
         element = _element;
     }
 
-    Element getElement() {
+    public Element getElement() {
         return element;
     }
 

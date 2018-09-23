@@ -2,6 +2,9 @@ package com.creations.scimitar_processor;
 
 import com.creations.scimitar_annotations.BindViewModel;
 import com.creations.scimitar_annotations.ViewModelFactory;
+import com.creations.scimitar_processor.elements.AnnotatedElement;
+import com.creations.scimitar_processor.elements.FactoryAnnotatedElement;
+import com.creations.scimitar_processor.elements.ViewModelAnnotatedElement;
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
@@ -334,8 +337,8 @@ public class ScimitarProcessor extends AbstractProcessor {
         return findParentFactory(el.getEnclosingElement(), factoryBindings);
     }
 
+    // Traverse class hierarchy to look for a @ViewModelFactory annotated field with "useAsDefault = true"
     private AnnotatedElement findParentFactory(TypeElement el, Map<TypeElement, AnnotatedElement> factoryBindings) {
-        // Traverse class hierarchy to look for a @ViewModelFactory annotated field with "useAsDefault"
         TypeMirror typeMirror = el.getSuperclass();
         if (typeMirror.getKind() == TypeKind.NONE) {
             return null;
