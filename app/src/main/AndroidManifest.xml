@@ -14,15 +14,15 @@
         tools:replace="android:appComponentFactory"
         tools:targetApi="28">
 
-        <activity android:name=".ThirdActivity">
+        <activity android:name=".activities.ThirdActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".FirstActivity" />
-        <activity android:name=".SecondActivity" />
+        <activity android:name=".activities.FirstActivity" />
+        <activity android:name=".activities.SecondActivity" />
     </application>
 
 </manifest>

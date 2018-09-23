@@ -1,7 +1,10 @@
-package com.creations.scimitar
+package com.creations.scimitar.activities
 
 import android.os.Bundle
 import android.util.Log
+import com.creations.scimitar.vm.MyViewModel
+import com.creations.scimitar.R
+import com.creations.scimitar.vm.SecondViewModel
 import com.creations.scimitar_annotations.BindViewModel
 
 open class SecondActivity : FirstActivity() {

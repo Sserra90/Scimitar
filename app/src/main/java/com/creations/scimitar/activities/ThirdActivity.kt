@@ -1,7 +1,11 @@
-package com.creations.scimitar
+package com.creations.scimitar.activities
 
 import android.os.Bundle
 import android.util.Log
+import com.creations.scimitar.vm.MyViewModel
+import com.creations.scimitar.R
+import com.creations.scimitar.vm.ScimitarViewModelFactory
+import com.creations.scimitar.User
 import com.creations.scimitar_annotations.BindViewModel
 import com.creations.scimitar_annotations.ViewModelFactory
 import com.creations.scimitar_annotations.state.OnError

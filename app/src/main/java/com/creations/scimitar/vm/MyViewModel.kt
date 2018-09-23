@@ -1,4 +1,4 @@
-package com.creations.scimitar
+package com.creations.scimitar.vm
 
 import androidx.lifecycle.ViewModel
 
