@@ -28,7 +28,7 @@ class ThirdActivity : SecondActivity() {
     lateinit var factory: ScimitarViewModelFactory
 
     @ResourceObserver(id = "users")
-    lateinit var usersObserver: StateObserver<Resource<User>>
+    lateinit var usersObserver: StateObserver<User>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         factory = ScimitarViewModelFactory()

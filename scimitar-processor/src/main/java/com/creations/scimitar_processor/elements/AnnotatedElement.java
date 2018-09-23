@@ -9,7 +9,7 @@ public abstract class AnnotatedElement {
 
     private Element element;
 
-    AnnotatedElement(Element _element) {
+    public AnnotatedElement(Element _element) {
         element = _element;
     }
 

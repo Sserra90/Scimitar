@@ -2,9 +2,15 @@ package com.creations.scimitar_processor;
 
 import com.creations.scimitar_annotations.BindViewModel;
 import com.creations.scimitar_annotations.ViewModelFactory;
+import com.creations.scimitar_annotations.state.OnError;
+import com.creations.scimitar_annotations.state.OnLoading;
+import com.creations.scimitar_annotations.state.OnSuccess;
+import com.creations.scimitar_annotations.state.ResourceObserver;
 import com.creations.scimitar_processor.elements.AnnotatedElement;
 import com.creations.scimitar_processor.elements.FactoryAnnotatedElement;
+import com.creations.scimitar_processor.elements.ResourceAnnotatedElement;
 import com.creations.scimitar_processor.elements.ViewModelAnnotatedElement;
+import com.creations.scimitar_processor.elements.methods.MethodElement;
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
@@ -14,6 +20,7 @@ import com.squareup.javapoet.TypeSpec;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,6 +37,7 @@ import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
@@ -138,6 +146,8 @@ public class ScimitarProcessor extends AbstractProcessor {
 
         final Map<TypeElement, AnnotatedElement> factoryBindings = new HashMap<>();
         final Map<TypeElement, List<AnnotatedElement>> bindingsMap = new HashMap<>();
+        final Map<TypeElement, List<AnnotatedElement>> observerBindings = new HashMap<>();
+        final Map<TypeElement, Map<String, ResourceSet>> resourceBindings = new HashMap<>();
 
         // Parse @BindViewModel annotated fields
         Set<VariableElement> fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(BindViewModel.class));
@@ -151,7 +161,23 @@ public class ScimitarProcessor extends AbstractProcessor {
             parseViewModelFactory(field, factoryBindings);
         }
 
+        // Parse @ResourceObserver annotated fields
+        fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(ResourceObserver.class));
+        for (VariableElement field : fields) {
+            parseResourceObserver(field, observerBindings);
+        }
+
+        Set<ExecutableElement> methods = new HashSet<>();
+        methods.addAll(ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnSuccess.class)));
+        methods.addAll(ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnError.class)));
+        methods.addAll(ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnLoading.class)));
+        for (ExecutableElement method : methods) {
+            parseResourceMethod(method, resourceBindings);
+        }
+
         warning("\nFactory bindings: " + prettyPrint(factoryBindings));
+        warning("\nObserver bindings: " + prettyPrint(observerBindings));
+        warning("\nResource bindings: " + prettyPrint(resourceBindings));
 
         // Parse superclasses recursively
         for (TypeElement el : bindingsMap.keySet()) {
@@ -189,6 +215,45 @@ public class ScimitarProcessor extends AbstractProcessor {
         if (checkFieldAccessible(ViewModelFactory.class, field) && isAssignableTo(field.asType(), factoryType)) {
             bindingsMap.put((TypeElement) field.getEnclosingElement(), new FactoryAnnotatedElement(field));
         }
+    }
+
+    private void parseResourceObserver(VariableElement field, Map<TypeElement, List<AnnotatedElement>> bindingsMap) {
+        if (checkFieldAccessible(ResourceObserver.class, field)) {
+            final ResourceAnnotatedElement el = new ResourceAnnotatedElement(field);
+
+            warning("Parse field: " + el);
+            warning("Type arg: " + el.getType());
+            if (!bindingsMap.containsKey(el.getEnclosingElement())) {
+                bindingsMap.put(el.getEnclosingElement(), new ArrayList<>());
+            }
+            bindingsMap.get(el.getEnclosingElement()).add(el);
+        }
+    }
+
+    private void parseResourceMethod(ExecutableElement method, Map<TypeElement, Map<String, ResourceSet>> resourceBindings) {
+        warning("\nParse method: " + method + " for: " + method.getAnnotationMirrors());
+
+        final MethodElement el = MethodElement.create(method);
+        final TypeElement enclosing = el.getEnclosingElement();
+
+        final Map<String, ResourceSet> bindings = resourceBindings.containsKey(enclosing)
+                ? resourceBindings.get(enclosing)
+                : new HashMap<>();
+
+        final ResourceSet resourceSet = bindings.containsKey(el.getId())
+                ? bindings.get(el.getId())
+                : new ResourceSet();
+
+        resourceSet.addMethod(el);
+        bindings.put(el.getId(), resourceSet);
+        resourceBindings.put(enclosing, bindings);
+
+        /*method.getParameters().forEach(new Consumer<VariableElement>() {
+            @Override
+            public void accept(VariableElement vl) {
+                warning("Param: " + vl.asType());
+            }
+        });*/
     }
 
     private boolean checkFieldAccessible(Class<? extends Annotation> annotationClass, Element element) {
@@ -371,8 +436,14 @@ public class ScimitarProcessor extends AbstractProcessor {
     public static class PrettyPrintingMap<K, V> {
         private Map<K, V> map;
 
-        public PrettyPrintingMap(Map<K, V> map) {
+        PrettyPrintingMap(Map<K, V> map) {
             this.map = map;
+        }
+
+        private <A> String printCol(Collection<A> c) {
+            StringBuilder sb = new StringBuilder();
+            c.forEach(o -> sb.append("\n").append(o.toString()));
+            return sb.toString();
         }
 
         public String toString() {
@@ -381,15 +452,17 @@ public class ScimitarProcessor extends AbstractProcessor {
             while (iter.hasNext()) {
                 Map.Entry<K, V> entry = iter.next();
                 sb.append(entry.getKey());
-                sb.append('=').append('"');
-                sb.append(entry.getValue());
-                sb.append('"');
+                sb.append('=');
+                if (entry.getValue() instanceof Collection) {
+                    sb.append("   ").append(printCol((Collection) entry.getValue()));
+                } else {
+                    sb.append(entry.getValue());
+                }
                 if (iter.hasNext()) {
-                    sb.append(',').append(' ');
+                    sb.append('\n');
                 }
             }
             return sb.toString();
-
         }
     }
 }
