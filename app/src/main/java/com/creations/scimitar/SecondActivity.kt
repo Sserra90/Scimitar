@@ -10,10 +10,10 @@ open class SecondActivity : FirstActivity() {
         const val TAG = "SecondActivity"
     }
 
-    @BindViewModel(MyViewModel::class)
+    @BindViewModel
     lateinit var firstVm: MyViewModel
 
-    @BindViewModel(SecondViewModel::class)
+    @BindViewModel
     lateinit var secondVm: SecondViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {

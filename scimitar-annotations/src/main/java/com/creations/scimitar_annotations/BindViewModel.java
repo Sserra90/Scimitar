@@ -14,6 +14,4 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface BindViewModel {
-    Class<?> value();
-}
+public @interface BindViewModel { }

@@ -12,7 +12,7 @@ open class FirstActivity : AppCompatActivity() {
         const val TAG = "FirstActivity"
     }
 
-    @BindViewModel(MyViewModel::class)
+    @BindViewModel
     lateinit var vm: MyViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {

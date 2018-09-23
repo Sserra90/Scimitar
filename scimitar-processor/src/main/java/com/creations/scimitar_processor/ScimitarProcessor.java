@@ -1,6 +1,7 @@
 package com.creations.scimitar_processor;
 
 import com.creations.scimitar_annotations.BindViewModel;
+import com.creations.scimitar_annotations.ViewModelFactory;
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
@@ -53,10 +54,17 @@ public class ScimitarProcessor extends AbstractProcessor {
     private static final String ACTIVITY_TYPE = "android.support.v4.app.FragmentActivity";
     private static final String ACTIVITY_TYPE_ANDROID_X = "androidx.fragment.app.FragmentActivity";
     private static final String FRAGMENT_TYPE = "android.app.Fragment";
+    private static final String VIEW_MODEL_FACTORY_ANDROID_X = "androidx.lifecycle.ViewModelProvider.Factory";
+    private static final String VIEW_MODEL_FACTORY = "android.arch.lifecycle.ViewModelProvider.Factory";
+
+    private static final String DOT = ".";
     private static final String CLASS_SUFFIX = ".class";
 
     // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
     private static final String BIND_STATEMENT = "$L.$L = $T.of($L).get($L)";
+    // target.vm = ViewModelProviders.of(target,factory).get(com.creations.scimitar.MyViewModel.class);
+    private static final String BIND_STATEMENT_WITH_FACTORY = "$L.$L = $T.of($L,$L).get($L)";
+
     private static final ClassName VIEW_MODEL_PROVIDER_CLASS_ANDROID_X
             = ClassName.get("androidx.lifecycle", "ViewModelProviders");
     private static final ClassName VIEW_MODEL_PROVIDER_CLASS
@@ -125,16 +133,24 @@ public class ScimitarProcessor extends AbstractProcessor {
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment env) {
         mMessager.printMessage(WARNING, "Process");
 
+        final Map<TypeElement, AnnotatedElement> factoryBindings = new HashMap<>();
         final Map<TypeElement, List<AnnotatedElement>> bindingsMap = new HashMap<>();
-        final List<AnnotatedElement> annotatedElements = new ArrayList<>();
 
         // Parse @BindViewModel annotated fields
-        final Set<VariableElement> fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(BindViewModel.class));
+        Set<VariableElement> fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(BindViewModel.class));
         for (VariableElement field : fields) {
-            parseBindViewModel(field, annotatedElements, bindingsMap);
+            parseBindViewModel(field, bindingsMap);
         }
 
-        // Parse superclasses
+        // Parse @ViewModelFactory annotated fields
+        fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(ViewModelFactory.class));
+        for (VariableElement field : fields) {
+            parseViewModelFactory(field, factoryBindings);
+        }
+
+        warning("\nFactory bindings: " + prettyPrint(factoryBindings));
+
+        // Parse superclasses recursively
         for (TypeElement el : bindingsMap.keySet()) {
             findParent(el, bindingsMap.get(el), bindingsMap);
         }
@@ -142,27 +158,33 @@ public class ScimitarProcessor extends AbstractProcessor {
         warning("\nFinal bindings: " + prettyPrint(bindingsMap));
 
         // Generate classes
-        generateClasses(bindingsMap);
+        generateClasses(bindingsMap, factoryBindings);
 
         return true;
     }
 
-    private void parseBindViewModel(VariableElement field,
-                                    List<AnnotatedElement> annotatedElements,
-                                    Map<TypeElement, List<AnnotatedElement>> bindingsMap) {
+    private void parseBindViewModel(VariableElement field, Map<TypeElement, List<AnnotatedElement>> bindingsMap) {
         warning("Name: " + field.getSimpleName());
         warning("Type: " + getValue(field.getAnnotation(BindViewModel.class)));
         warning("Enclosing element: " + field.getEnclosingElement().toString());
 
         if (checkFieldAccessible(BindViewModel.class, field)) {
 
-            final AnnotatedElement el = new AnnotatedElement(field);
+            final AnnotatedElement el = new ViewModelAnnotatedElement(field);
             if (!bindingsMap.containsKey(el.getEnclosingElement())) {
                 bindingsMap.put(el.getEnclosingElement(), new ArrayList<>());
             }
             bindingsMap.get(el.getEnclosingElement()).add(el);
+        }
+    }
 
-            annotatedElements.add(el);
+    private void parseViewModelFactory(VariableElement field, Map<TypeElement, AnnotatedElement> bindingsMap) {
+        final TypeMirror factoryType = mElements.getTypeElement(
+                useAndroidX ? VIEW_MODEL_FACTORY_ANDROID_X : VIEW_MODEL_FACTORY
+        ).asType();
+
+        if (checkFieldAccessible(ViewModelFactory.class, field) && isAssignableTo(field.asType(), factoryType)) {
+            bindingsMap.put((TypeElement) field.getEnclosingElement(), new FactoryAnnotatedElement(field));
         }
     }
 
@@ -210,11 +232,15 @@ public class ScimitarProcessor extends AbstractProcessor {
     private boolean isEnclosingTypeValid(Element element) {
         for (String allowed : allowedEnclosingTypes) {
             final TypeMirror allowedType = mElements.getTypeElement(allowed).asType();
-            if (mTypeUtils.isAssignable(element.getEnclosingElement().asType(), allowedType)) {
+            if (isAssignableTo(element.getEnclosingElement().asType(), allowedType)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private boolean isAssignableTo(TypeMirror type, TypeMirror type2) {
+        return mTypeUtils.isAssignable(type, type2);
     }
 
     private void findParent(TypeElement type,
@@ -235,10 +261,12 @@ public class ScimitarProcessor extends AbstractProcessor {
         findParent(parentType, elements, bindings);
     }
 
-    private void generateClasses(Map<TypeElement, List<AnnotatedElement>> bindings) {
+    private void generateClasses(final Map<TypeElement, List<AnnotatedElement>> bindings,
+                                 final Map<TypeElement, AnnotatedElement> factoryBindings) {
+
         bindings.forEach((typeElement, annotatedElements) -> {
             try {
-                writeClass(typeElement, annotatedElements);
+                writeClass(typeElement, annotatedElements, factoryBindings);
             } catch (IOException e) {
                 error(e.getMessage());
                 e.printStackTrace();
@@ -246,29 +274,49 @@ public class ScimitarProcessor extends AbstractProcessor {
         });
     }
 
-    private void writeClass(TypeElement typeElement, List<AnnotatedElement> annotatedElements) throws IOException {
-        MethodSpec constructor = createBindingConstructor(typeElement.toString(), annotatedElements);
+    private void writeClass(TypeElement typeElement,
+                            List<AnnotatedElement> annotatedElements,
+                            Map<TypeElement, AnnotatedElement> factoryBindings) throws IOException {
+
+        MethodSpec constructor = createBindingConstructor(typeElement.toString(), annotatedElements, factoryBindings);
         TypeSpec binder = createClass(typeElement.getSimpleName().toString(), constructor);
         JavaFile javaFile = JavaFile.builder(getPackage(typeElement.toString()), binder).build();
         javaFile.writeTo(mFiler);
         warning("Generated java class: " + typeElement.getSimpleName() + SCIMITAR_SUFFIX);
     }
 
-    private MethodSpec createBindingConstructor(String targetTypeName, List<AnnotatedElement> annotatedElements) {
+    private MethodSpec createBindingConstructor(String targetTypeName,
+                                                List<AnnotatedElement> annotatedElements,
+                                                Map<TypeElement, AnnotatedElement> factoryBindings) {
         MethodSpec.Builder builder = MethodSpec.constructorBuilder()
                 .addModifiers(PUBLIC)
                 .addParameter(ClassName.bestGuess(targetTypeName), PARAM_TARGET_NAME);
 
         // Generates something like the following:
         // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
+
         for (AnnotatedElement el : annotatedElements) {
-            builder.addStatement(BIND_STATEMENT,
-                    PARAM_TARGET_NAME,
-                    el.getName(),
-                    useAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
-                    PARAM_TARGET_NAME,
-                    el.getValue().toString() + CLASS_SUFFIX
-            );
+
+            final AnnotatedElement factory = factoryBindings.get(el.getEnclosingElement());
+            if (factory != null) {
+                builder.addStatement(BIND_STATEMENT_WITH_FACTORY,
+                        PARAM_TARGET_NAME,
+                        el.getName(),
+                        useAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
+                        PARAM_TARGET_NAME,
+                        PARAM_TARGET_NAME + DOT + factory.getName(),
+                        el.getElement().asType() + CLASS_SUFFIX
+                );
+            } else {
+                builder.addStatement(BIND_STATEMENT,
+                        PARAM_TARGET_NAME,
+                        el.getName(),
+                        useAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
+                        PARAM_TARGET_NAME,
+                        el.getElement().asType() + CLASS_SUFFIX
+                );
+            }
+
         }
 
         return builder.build();
