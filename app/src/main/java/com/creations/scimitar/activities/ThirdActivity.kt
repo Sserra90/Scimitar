@@ -36,20 +36,22 @@ class ThirdActivity : SecondActivity() {
         setContentView(R.layout.activity_main)
 
         Log.d(TAG, "Vm injected: $vm")
+        vm.liveData.observe(this, usersObserver)
+        vm.getUsers()
     }
 
     @OnSuccess(id = "users")
-    public fun renderUsers(user: User) {
+    fun renderUsers(user: User) {
         Log.d(TAG, "Render user: $user")
     }
 
     @OnError(id = "users")
-    public fun renderError(t: Throwable) {
+    fun renderError(t: Throwable) {
         Log.d(TAG, "Show error")
     }
 
     @OnLoading(id = "users")
-    public fun showLoading() {
+    fun showLoading() {
         Log.d(TAG, "Show loading")
     }
 }

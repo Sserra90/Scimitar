@@ -17,9 +17,7 @@ import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
-import com.squareup.javapoet.TypeVariableName;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -33,7 +31,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -73,7 +70,15 @@ public class ScimitarProcessor extends AbstractProcessor {
     private static final String FRAGMENT_TYPE = "android.app.Fragment";
     private static final String VIEW_MODEL_FACTORY_ANDROID_X = "androidx.lifecycle.ViewModelProvider.Factory";
     private static final String VIEW_MODEL_FACTORY = "android.arch.lifecycle.ViewModelProvider.Factory";
-    private static final String THROWABLE_TYPE = "java.lang.Throwable";
+
+    private static final String ON_LOADING = "onLoading";
+    private static final String ON_SUCCESS = "onSuccess";
+    private static final String ON_ERROR = "onError";
+
+    private static final ClassName STATE_OBSERVER_TYPE =
+            ClassName.get("com.creations.scimitar_runtime.state", "StateObserver");
+    private static final String THROWABLE = "java.lang.Throwable";
+    private static final ClassName THROWABLE_TYPE = ClassName.get("java.lang", "Throwable");
 
     private static final String DOT = ".";
     private static final String CLASS_SUFFIX = ".class";
@@ -318,7 +323,7 @@ public class ScimitarProcessor extends AbstractProcessor {
             } else if (paramsNr == 1) {
 
                 final TypeMirror paramType = method.getParameters().get(0).asType();
-                final TypeMirror throwableType = mElements.getTypeElement(THROWABLE_TYPE).asType();
+                final TypeMirror throwableType = mElements.getTypeElement(THROWABLE).asType();
 
                 if (!mTypeUtils.isSameType(paramType, throwableType)) {
                     error(String.format(
@@ -489,64 +494,80 @@ public class ScimitarProcessor extends AbstractProcessor {
                                  final Map<TypeElement, List<AnnotatedElement>> observerBindings,
                                  final Map<TypeElement, Map<String, MethodsSet>> methodBindings) {
 
-        final List<TypeSpec> anonymousStateObservers = new ArrayList<>();
+        final Map<TypeElement, TypeSpec> stateObservers = new HashMap<>();
 
-        observerBindings.forEach(((typeElement, elements) -> {
+        observerBindings.forEach(((typeElement, observers) -> observers.forEach(el -> {
 
-            ClassName stateObserverClass = ClassName.get("com.creations.scimitar_runtime.state", "StateObserver");
-            ClassName stateTypeParam = ClassName.get("com.creations.scimitar", "User");
+            ResourceAnnotatedElement observer = (ResourceAnnotatedElement) el;
 
-            TypeName stateParam = ParameterizedTypeName.get(stateObserverClass, stateTypeParam);
+            if (methodBindings.containsKey(typeElement)) {
 
-            TypeSpec.Builder anonymousBuilder = TypeSpec
-                    .anonymousClassBuilder("")
-                    .superclass(stateParam);
+                ClassName stateTypeParam = ClassName.get("com.creations.scimitar", "User");
+                final TypeSpec.Builder stateObserverBuilder = TypeSpec
+                        .anonymousClassBuilder("")
+                        .superclass(ParameterizedTypeName.get(STATE_OBSERVER_TYPE, stateTypeParam));
 
-            MethodSpec.Builder method =
-                    MethodSpec.methodBuilder("onSuccess")
-                            .addAnnotation(Override.class)
-                            .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                            .addParameter(ParameterSpec.builder(stateTypeParam, "data").build())
-                            .addComment("// no-op");
+                final MethodsSet methodsSet = methodBindings.get(typeElement).get(observer.getId());
+                if (methodsSet != null) {
+                    if (methodsSet.success() != null) {
+                        stateObserverBuilder.addMethod(
+                                buildMethod(
+                                        ON_SUCCESS, ParameterSpec.builder(stateTypeParam, "data").build(),
+                                        "$L.$L($N)",
+                                        PARAM_TARGET_NAME,
+                                        methodsSet.success().getName(),
+                                        "data"
+                                ));
+                    }
 
-            anonymousBuilder.addMethod(method.build());
+                    if (methodsSet.error() != null) {
+                        stateObserverBuilder.addMethod(
+                                buildMethod(
+                                        ON_ERROR, ParameterSpec.builder(THROWABLE_TYPE, "error").build(),
+                                        "$L.$L($N)",
+                                        PARAM_TARGET_NAME,
+                                        methodsSet.error().getName(),
+                                        "error"
+                                )
+                        );
+                    }
 
-            method =
-                    MethodSpec.methodBuilder("onError")
-                            .addAnnotation(Override.class)
-                            .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                            .addParameter(ParameterSpec.builder(ClassName.get(Throwable.class), "error").build())
-                            .addComment("// no-op");
-            anonymousBuilder.addMethod(method.build());
+                    if (methodsSet.loading() != null) {
+                        stateObserverBuilder.addMethod(
+                                buildMethod(
+                                        ON_LOADING, null, "$L.$L()",
+                                        PARAM_TARGET_NAME, methodsSet.loading().getName()
+                                )
+                        );
+                    }
+                }
 
-            method =
-                    MethodSpec.methodBuilder("onLoading")
-                            .addAnnotation(Override.class)
-                            .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                            .addComment("// no-op");
-            anonymousBuilder.addMethod(method.build());
-
-            anonymousStateObservers.add(anonymousBuilder.build());
-
-        }));
+                stateObservers.put(
+                        typeElement,
+                        stateObserverBuilder.build()
+                );
+            }
+        })));
 
         bindings.forEach((typeElement, annotatedElements) -> {
+
             try {
-                writeClass(typeElement, annotatedElements, factoryBindings, anonymousStateObservers);
+                writeClass(typeElement, annotatedElements, factoryBindings, stateObservers);
             } catch (IOException e) {
                 error(e.getMessage());
                 e.printStackTrace();
             }
+
         });
     }
 
     private void writeClass(TypeElement typeElement,
                             List<AnnotatedElement> annotatedElements,
                             Map<TypeElement, AnnotatedElement> factoryBindings,
-                            List<TypeSpec> stateObservers) throws IOException {
+                            Map<TypeElement, TypeSpec> stateObservers) throws IOException {
 
         MethodSpec constructor = createBindingConstructor(
-                typeElement.toString(),
+                typeElement,
                 annotatedElements,
                 factoryBindings,
                 stateObservers
@@ -560,13 +581,14 @@ public class ScimitarProcessor extends AbstractProcessor {
         warning("Generated java class: " + typeElement.getSimpleName() + SCIMITAR_SUFFIX);
     }
 
-    private MethodSpec createBindingConstructor(String targetTypeName,
+    private MethodSpec createBindingConstructor(TypeElement enclosing,
                                                 List<AnnotatedElement> annotatedElements,
                                                 Map<TypeElement, AnnotatedElement> factoryBindings,
-                                                List<TypeSpec> anonymousStateObservers) {
+                                                Map<TypeElement, TypeSpec> stateObservers) {
+
         MethodSpec.Builder builder = MethodSpec.constructorBuilder()
                 .addModifiers(PUBLIC)
-                .addParameter(ClassName.bestGuess(targetTypeName), PARAM_TARGET_NAME);
+                .addParameter(ClassName.bestGuess(enclosing.toString()), PARAM_TARGET_NAME);
 
         // Generates something like the following:
         // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
@@ -594,13 +616,14 @@ public class ScimitarProcessor extends AbstractProcessor {
             }
         }
 
-
-        anonymousStateObservers.forEach(typeSpec ->
-                builder.addStatement("$L.$L = $L",
-                        PARAM_TARGET_NAME,
-                        "usersObserver",
-                        typeSpec
-                ));
+        if (stateObservers.get(enclosing) != null) {
+            stateObservers.forEach((fieldName, typeSpec) ->
+                    builder.addStatement("$L.$L = $L",
+                            PARAM_TARGET_NAME,
+                            "usersObserver",
+                            typeSpec
+                    ));
+        }
 
         return builder.build();
     }
@@ -647,6 +670,17 @@ public class ScimitarProcessor extends AbstractProcessor {
     private static boolean isPrivateOrStatic(Element el) {
         final Set<Modifier> modifiers = el.getModifiers();
         return modifiers.contains(Modifier.PRIVATE) || modifiers.contains(Modifier.STATIC);
+    }
+
+    private static MethodSpec buildMethod(String name, ParameterSpec paramSpec, String statement, Object... args) {
+        MethodSpec.Builder method = MethodSpec.methodBuilder(name)
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
+        if (paramSpec != null) {
+            method.addParameter(paramSpec).build();
+        }
+        method.addStatement(statement, args);
+        return method.build();
     }
 
     private <K, V> String prettyPrint(Map<K, V> map) {
