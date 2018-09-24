@@ -247,6 +247,12 @@ public class ScimitarProcessor extends AbstractProcessor {
         final MethodElement methodEl = MethodElement.create(method);
         final TypeElement enclosing = methodEl.getEnclosingElement();
 
+        // Check is not private or static
+        if (isPrivateOrStatic(method)) {
+            error(String.format("Method %s cannot be private or static", method.getSimpleName()));
+            return;
+        }
+
         // Check class has @ResourceObserver annotated fields
         if (!observers.containsKey(enclosing)) {
             error(String.format("No @ResourceObserver annotated fields were found in class: %s", enclosing));
@@ -350,9 +356,20 @@ public class ScimitarProcessor extends AbstractProcessor {
         final MethodElement methodEl = MethodElement.create(method);
         final TypeElement enclosing = methodEl.getEnclosingElement();
 
+        // Method cannot be private
+        if (isPrivateOrStatic(method)) {
+            error(String.format(
+                    "Method %s cannot be private or static",
+                    method.getSimpleName()
+                    )
+            );
+            return false;
+        }
+
         // Check class has @ResourceObserver annotated fields
         if (!observers.containsKey(enclosing)) {
             error(String.format("No @ResourceObserver annotated fields were found in class: %s", enclosing));
+            return false;
         }
 
         // Find @ResourceObserver annotated field with the same id
@@ -361,6 +378,7 @@ public class ScimitarProcessor extends AbstractProcessor {
             error(String.format("No @ResourceObserver annotated fields were found in class: %s " +
                     "for id: %s", enclosing, methodEl.getId())
             );
+            return false;
         }
 
         return true;
@@ -395,8 +413,7 @@ public class ScimitarProcessor extends AbstractProcessor {
         final TypeElement enclosingElement = (TypeElement) element.getEnclosingElement();
 
         // Verify field modifiers
-        final Set<Modifier> modifiers = element.getModifiers();
-        if (modifiers.contains(Modifier.PRIVATE) || modifiers.contains(Modifier.STATIC)) {
+        if (isPrivateOrStatic(element)) {
             error(
                     String.format(
                             "@%s %s must not be private or static. (%s.%s)",
@@ -560,6 +577,11 @@ public class ScimitarProcessor extends AbstractProcessor {
 
     private String getPackage(String qualifier) {
         return qualifier.substring(0, qualifier.lastIndexOf("."));
+    }
+
+    private static boolean isPrivateOrStatic(Element el) {
+        final Set<Modifier> modifiers = el.getModifiers();
+        return modifiers.contains(Modifier.PRIVATE) || modifiers.contains(Modifier.STATIC);
     }
 
     private <K, V> String prettyPrint(Map<K, V> map) {
