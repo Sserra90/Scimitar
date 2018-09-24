@@ -9,16 +9,16 @@ import androidx.lifecycle.Observer;
 public abstract class StateObserver<D> implements Observer<Resource<D>> {
 
     public void onSuccess(D data){}
-    public void onError(String error){}
+    public void onError(Throwable throwable){}
     public void onLoading(){}
 
     @Override
-    public void onChanged(@Nullable Resource<D> res) {
+    public final void onChanged(@Nullable Resource<D> res) {
         if (res != null) {
             if (res.success()) {
                 onSuccess(res.data);
             } else if (res.error()) {
-                onError(res.getMessage());
+                onError(res.getError());
             } else {
                 onLoading();
             }

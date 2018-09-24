@@ -23,7 +23,8 @@ android {
 }
 
 ext {
-    appCompat = "1.0.0-rc02"
+    livedata = "2.0.0"
+    appCompat = "1.0.0"
     junit = "4.12"
 }
 
@@ -32,6 +33,7 @@ dependencies {
 
     api project(":scimitar-annotations")
     implementation "androidx.appcompat:appcompat:$appCompat"
+    implementation "androidx.lifecycle:lifecycle-livedata-core:$livedata"
 
     testImplementation "junit:junit:$junit"
 }

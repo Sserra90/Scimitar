@@ -1,5 +1,8 @@
 package com.creations.scimitar_runtime.state;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -22,27 +25,27 @@ public final class Resource<T> {
     private final Status status;
 
     @Nullable
-    private final String message;
+    private final Throwable error;
 
     @Nullable
     public final T data;
 
-    private Resource(@NonNull Status status, @Nullable T data, @Nullable String message) {
+    private Resource(@NonNull Status status, @Nullable T data, @Nullable Throwable error) {
         this.status = status;
         this.data = data;
-        this.message = message;
+        this.error = error;
     }
 
     public static <T> Resource<T> success(@Nullable T data) {
         return new Resource<>(SUCCESS, data, null);
     }
 
-    public static <T> Resource<T> error(String msg, @Nullable T data) {
-        return new Resource<>(ERROR, data, msg);
+    public static <T> Resource<T> error(Throwable error, @Nullable T data) {
+        return new Resource<>(ERROR, data, error);
     }
 
-    public static <T> Resource<T> error(String msg) {
-        return new Resource<>(ERROR, null, msg);
+    public static <T> Resource<T> error(Throwable error) {
+        return new Resource<>(ERROR, null, error);
     }
 
     public static <T> Resource<T> loading(@Nullable T data) {
@@ -61,49 +64,30 @@ public final class Resource<T> {
         return status.equals(ERROR);
     }
 
-    @Nullable
-    public String getMessage() {
-        return message;
+    public Throwable getError() {
+        return error;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         Resource<?> resource = (Resource<?>) o;
-
-        if (status != resource.status) {
-            return false;
-        }
-        if (message != null ? !message.equals(resource.message) : resource.message != null) {
-            return false;
-        }
-        return data != null ? data.equals(resource.data) : resource.data == null;
+        return status == resource.status &&
+                equals(error, resource.error) &&
+                equals(data, resource.data);
     }
 
     @Override
     public int hashCode() {
-        int result = status.hashCode();
-        result = 31 * result + (message != null ? message.hashCode() : 0);
-        result = 31 * result + (data != null ? data.hashCode() : 0);
-        return result;
+        return hash(status, error, data);
     }
 
-    @Override
-    public String toString() {
-        return "Resource{"
-                + "status="
-                + status
-                + ", message='"
-                + message
-                + '\''
-                + ", data="
-                + data
-                + '}';
+    public static int hash(Object... values) {
+        return Arrays.hashCode(values);
+    }
+
+    public static boolean equals(Object a, Object b) {
+        return (a == b) || (a != null && a.equals(b));
     }
 }

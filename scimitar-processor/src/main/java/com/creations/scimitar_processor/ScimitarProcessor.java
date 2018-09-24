@@ -15,7 +15,11 @@ import com.google.auto.service.AutoService;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.TypeVariableName;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -29,6 +33,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -148,7 +153,7 @@ public class ScimitarProcessor extends AbstractProcessor {
         final Map<TypeElement, AnnotatedElement> factoryBindings = new HashMap<>();
         final Map<TypeElement, List<AnnotatedElement>> bindingsMap = new HashMap<>();
         final Map<TypeElement, List<AnnotatedElement>> observerBindings = new HashMap<>();
-        final Map<TypeElement, Map<String, MethodsSet>> resourceBindings = new HashMap<>();
+        final Map<TypeElement, Map<String, MethodsSet>> methodBindings = new HashMap<>();
 
         // Parse @BindViewModel annotated fields
         Set<VariableElement> fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(BindViewModel.class));
@@ -171,19 +176,19 @@ public class ScimitarProcessor extends AbstractProcessor {
         // Parse @OnSuccess annotated methods
         Set<ExecutableElement> methods = ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnSuccess.class));
         for (ExecutableElement method : methods) {
-            parseOnSuccessMethod(method, observerBindings, resourceBindings);
+            parseOnSuccessMethod(method, observerBindings, methodBindings);
         }
 
         // Parse @OnError annotated methods
         methods = ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnError.class));
         for (ExecutableElement method : methods) {
-            parseOnErrorMethod(method, observerBindings, resourceBindings);
+            parseOnErrorMethod(method, observerBindings, methodBindings);
         }
 
         // Parse @OnLoading annotated methods
         methods = ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnLoading.class));
         for (ExecutableElement method : methods) {
-            parseOnLoadingMethod(method, observerBindings, resourceBindings);
+            parseOnLoadingMethod(method, observerBindings, methodBindings);
         }
 
         // Parse superclasses recursively
@@ -193,11 +198,11 @@ public class ScimitarProcessor extends AbstractProcessor {
 
         warning("\nFactory bindings: " + prettyPrint(factoryBindings));
         warning("\nObserver bindings: " + prettyPrint(observerBindings));
-        warning("\nResource bindings: " + prettyPrint(resourceBindings));
+        warning("\nMethod bindings: " + prettyPrint(methodBindings));
         warning("\nFinal bindings: " + prettyPrint(bindingsMap));
 
         // Generate classes
-        generateClasses(bindingsMap, factoryBindings);
+        generateClasses(bindingsMap, factoryBindings, observerBindings, methodBindings);
 
         return true;
     }
@@ -480,11 +485,54 @@ public class ScimitarProcessor extends AbstractProcessor {
     }
 
     private void generateClasses(final Map<TypeElement, List<AnnotatedElement>> bindings,
-                                 final Map<TypeElement, AnnotatedElement> factoryBindings) {
+                                 final Map<TypeElement, AnnotatedElement> factoryBindings,
+                                 final Map<TypeElement, List<AnnotatedElement>> observerBindings,
+                                 final Map<TypeElement, Map<String, MethodsSet>> methodBindings) {
+
+        final List<TypeSpec> anonymousStateObservers = new ArrayList<>();
+
+        observerBindings.forEach(((typeElement, elements) -> {
+
+            ClassName stateObserverClass = ClassName.get("com.creations.scimitar_runtime.state", "StateObserver");
+            ClassName stateTypeParam = ClassName.get("com.creations.scimitar", "User");
+
+            TypeName stateParam = ParameterizedTypeName.get(stateObserverClass, stateTypeParam);
+
+            TypeSpec.Builder anonymousBuilder = TypeSpec
+                    .anonymousClassBuilder("")
+                    .superclass(stateParam);
+
+            MethodSpec.Builder method =
+                    MethodSpec.methodBuilder("onSuccess")
+                            .addAnnotation(Override.class)
+                            .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                            .addParameter(ParameterSpec.builder(stateTypeParam, "data").build())
+                            .addComment("// no-op");
+
+            anonymousBuilder.addMethod(method.build());
+
+            method =
+                    MethodSpec.methodBuilder("onError")
+                            .addAnnotation(Override.class)
+                            .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                            .addParameter(ParameterSpec.builder(ClassName.get(Throwable.class), "error").build())
+                            .addComment("// no-op");
+            anonymousBuilder.addMethod(method.build());
+
+            method =
+                    MethodSpec.methodBuilder("onLoading")
+                            .addAnnotation(Override.class)
+                            .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                            .addComment("// no-op");
+            anonymousBuilder.addMethod(method.build());
+
+            anonymousStateObservers.add(anonymousBuilder.build());
+
+        }));
 
         bindings.forEach((typeElement, annotatedElements) -> {
             try {
-                writeClass(typeElement, annotatedElements, factoryBindings);
+                writeClass(typeElement, annotatedElements, factoryBindings, anonymousStateObservers);
             } catch (IOException e) {
                 error(e.getMessage());
                 e.printStackTrace();
@@ -494,18 +542,28 @@ public class ScimitarProcessor extends AbstractProcessor {
 
     private void writeClass(TypeElement typeElement,
                             List<AnnotatedElement> annotatedElements,
-                            Map<TypeElement, AnnotatedElement> factoryBindings) throws IOException {
+                            Map<TypeElement, AnnotatedElement> factoryBindings,
+                            List<TypeSpec> stateObservers) throws IOException {
 
-        MethodSpec constructor = createBindingConstructor(typeElement.toString(), annotatedElements, factoryBindings);
+        MethodSpec constructor = createBindingConstructor(
+                typeElement.toString(),
+                annotatedElements,
+                factoryBindings,
+                stateObservers
+        );
+
         TypeSpec binder = createClass(typeElement.getSimpleName().toString(), constructor);
+
         JavaFile javaFile = JavaFile.builder(getPackage(typeElement.toString()), binder).build();
         javaFile.writeTo(mFiler);
+
         warning("Generated java class: " + typeElement.getSimpleName() + SCIMITAR_SUFFIX);
     }
 
     private MethodSpec createBindingConstructor(String targetTypeName,
                                                 List<AnnotatedElement> annotatedElements,
-                                                Map<TypeElement, AnnotatedElement> factoryBindings) {
+                                                Map<TypeElement, AnnotatedElement> factoryBindings,
+                                                List<TypeSpec> anonymousStateObservers) {
         MethodSpec.Builder builder = MethodSpec.constructorBuilder()
                 .addModifiers(PUBLIC)
                 .addParameter(ClassName.bestGuess(targetTypeName), PARAM_TARGET_NAME);
@@ -534,8 +592,15 @@ public class ScimitarProcessor extends AbstractProcessor {
                         el.getElement().asType() + CLASS_SUFFIX
                 );
             }
-
         }
+
+
+        anonymousStateObservers.forEach(typeSpec ->
+                builder.addStatement("$L.$L = $L",
+                        PARAM_TARGET_NAME,
+                        "usersObserver",
+                        typeSpec
+                ));
 
         return builder.build();
     }
