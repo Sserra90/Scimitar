@@ -64,34 +64,14 @@ import static javax.xml.bind.JAXBIntrospector.getValue;
 public class ScimitarProcessor extends AbstractProcessor {
 
     private static final String SCIMITAR_SUFFIX = "$$Scimitar";
-    private static final String PARAM_TARGET_NAME = "target";
     private static final String ACTIVITY_TYPE = "android.support.v4.app.FragmentActivity";
     private static final String ACTIVITY_TYPE_ANDROID_X = "androidx.fragment.app.FragmentActivity";
     private static final String FRAGMENT_TYPE = "android.app.Fragment";
     private static final String VIEW_MODEL_FACTORY_ANDROID_X = "androidx.lifecycle.ViewModelProvider.Factory";
     private static final String VIEW_MODEL_FACTORY = "android.arch.lifecycle.ViewModelProvider.Factory";
 
-    private static final String ON_LOADING = "onLoading";
-    private static final String ON_SUCCESS = "onSuccess";
-    private static final String ON_ERROR = "onError";
-
-    private static final ClassName STATE_OBSERVER_TYPE =
-            ClassName.get("com.creations.scimitar_runtime.state", "StateObserver");
     private static final String THROWABLE = "java.lang.Throwable";
     private static final ClassName THROWABLE_TYPE = ClassName.get("java.lang", "Throwable");
-
-    private static final String DOT = ".";
-    private static final String CLASS_SUFFIX = ".class";
-
-    // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
-    private static final String BIND_STATEMENT = "$L.$L = $T.of($L).get($L)";
-    // target.vm = ViewModelProviders.of(target,factory).get(com.creations.scimitar.MyViewModel.class);
-    private static final String BIND_STATEMENT_WITH_FACTORY = "$L.$L = $T.of($L,$L).get($L)";
-
-    private static final ClassName VIEW_MODEL_PROVIDER_CLASS_ANDROID_X
-            = ClassName.get("androidx.lifecycle", "ViewModelProviders");
-    private static final ClassName VIEW_MODEL_PROVIDER_CLASS
-            = ClassName.get("android.arch.lifecycle", "ViewModelProviders");
 
     private static final Set<String> allowedEnclosingTypes = new HashSet<>();
 
@@ -156,14 +136,14 @@ public class ScimitarProcessor extends AbstractProcessor {
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment env) {
 
         final Map<TypeElement, AnnotatedElement> factoryBindings = new HashMap<>();
-        final Map<TypeElement, List<AnnotatedElement>> bindingsMap = new HashMap<>();
+        final Map<TypeElement, List<AnnotatedElement>> viewModelBindingsMap = new HashMap<>();
         final Map<TypeElement, List<AnnotatedElement>> observerBindings = new HashMap<>();
         final Map<TypeElement, Map<String, MethodsSet>> methodBindings = new HashMap<>();
 
         // Parse @BindViewModel annotated fields
         Set<VariableElement> fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(BindViewModel.class));
         for (VariableElement field : fields) {
-            parseBindViewModel(field, bindingsMap);
+            parseBindViewModel(field, viewModelBindingsMap);
         }
 
         // Parse @ViewModelFactory annotated fields
@@ -197,17 +177,53 @@ public class ScimitarProcessor extends AbstractProcessor {
         }
 
         // Parse superclasses recursively
-        for (TypeElement el : bindingsMap.keySet()) {
-            findParent(el, bindingsMap.get(el), bindingsMap);
+        for (TypeElement el : viewModelBindingsMap.keySet()) {
+            findParent(el, viewModelBindingsMap.get(el), viewModelBindingsMap);
         }
 
-        warning("\nFactory bindings: " + prettyPrint(factoryBindings));
+        /*warning("\nFactory bindings: " + prettyPrint(factoryBindings));
         warning("\nObserver bindings: " + prettyPrint(observerBindings));
         warning("\nMethod bindings: " + prettyPrint(methodBindings));
-        warning("\nFinal bindings: " + prettyPrint(bindingsMap));
+        warning("\nFinal bindings: " + prettyPrint(viewModelBindingsMap));*/
+
+        final Map<TypeElement, BindingsSet> bindingsMap = new HashMap<>();
+        factoryBindings.forEach((typeElement, annotatedElement) -> {
+            if (!bindingsMap.containsKey(typeElement)) {
+                final BindingsSet set1 = new BindingsSet(useAndroidX, typeElement, factoryBindings);
+                set1.setFactory(annotatedElement);
+                bindingsMap.put(typeElement, set1);
+            }
+        });
+        viewModelBindingsMap.forEach((typeElement, annotatedElements) -> {
+            if (!bindingsMap.containsKey(typeElement)) {
+                final BindingsSet set1 = new BindingsSet(useAndroidX, typeElement, factoryBindings);
+                set1.setViewModelBindings(annotatedElements);
+                bindingsMap.put(typeElement, set1);
+            } else {
+                bindingsMap.get(typeElement).setViewModelBindings(annotatedElements);
+            }
+        });
+        methodBindings.forEach((typeElement, methodsSet) -> {
+            if (!bindingsMap.containsKey(typeElement)) {
+                final BindingsSet set1 = new BindingsSet(useAndroidX, typeElement, factoryBindings);
+                set1.setMethodBindings(methodsSet);
+                bindingsMap.put(typeElement, set1);
+            } else {
+                bindingsMap.get(typeElement).setMethodBindings(methodsSet);
+            }
+        });
+        observerBindings.forEach((typeElement, annotatedElements) -> {
+            if (!bindingsMap.containsKey(typeElement)) {
+                final BindingsSet set1 = new BindingsSet(useAndroidX, typeElement, factoryBindings);
+                set1.setObserverBindings(annotatedElements);
+                bindingsMap.put(typeElement, set1);
+            } else {
+                bindingsMap.get(typeElement).setObserverBindings(annotatedElements);
+            }
+        });
 
         // Generate classes
-        generateClasses(bindingsMap, factoryBindings, observerBindings, methodBindings);
+        generateClasses(bindingsMap);
 
         return true;
     }
@@ -489,171 +505,24 @@ public class ScimitarProcessor extends AbstractProcessor {
         findParent(parentType, elements, bindings);
     }
 
-    private void generateClasses(final Map<TypeElement, List<AnnotatedElement>> bindings,
-                                 final Map<TypeElement, AnnotatedElement> factoryBindings,
-                                 final Map<TypeElement, List<AnnotatedElement>> observerBindings,
-                                 final Map<TypeElement, Map<String, MethodsSet>> methodBindings) {
-
-        final Map<TypeElement, TypeSpec> stateObservers = new HashMap<>();
-
-        observerBindings.forEach(((typeElement, observers) -> observers.forEach(el -> {
-
-            ResourceAnnotatedElement observer = (ResourceAnnotatedElement) el;
-
-            if (methodBindings.containsKey(typeElement)) {
-
-                ClassName stateTypeParam = ClassName.get("com.creations.scimitar", "User");
-                final TypeSpec.Builder stateObserverBuilder = TypeSpec
-                        .anonymousClassBuilder("")
-                        .superclass(ParameterizedTypeName.get(STATE_OBSERVER_TYPE, stateTypeParam));
-
-                final MethodsSet methodsSet = methodBindings.get(typeElement).get(observer.getId());
-                if (methodsSet != null) {
-                    if (methodsSet.success() != null) {
-                        stateObserverBuilder.addMethod(
-                                buildMethod(
-                                        ON_SUCCESS, ParameterSpec.builder(stateTypeParam, "data").build(),
-                                        "$L.$L($N)",
-                                        PARAM_TARGET_NAME,
-                                        methodsSet.success().getName(),
-                                        "data"
-                                ));
-                    }
-
-                    if (methodsSet.error() != null) {
-                        stateObserverBuilder.addMethod(
-                                buildMethod(
-                                        ON_ERROR, ParameterSpec.builder(THROWABLE_TYPE, "error").build(),
-                                        "$L.$L($N)",
-                                        PARAM_TARGET_NAME,
-                                        methodsSet.error().getName(),
-                                        "error"
-                                )
-                        );
-                    }
-
-                    if (methodsSet.loading() != null) {
-                        stateObserverBuilder.addMethod(
-                                buildMethod(
-                                        ON_LOADING, null, "$L.$L()",
-                                        PARAM_TARGET_NAME, methodsSet.loading().getName()
-                                )
-                        );
-                    }
-                }
-
-                stateObservers.put(
-                        typeElement,
-                        stateObserverBuilder.build()
-                );
-            }
-        })));
-
-        bindings.forEach((typeElement, annotatedElements) -> {
-
+    private void generateClasses(final Map<TypeElement, BindingsSet> bindingsMap) {
+        bindingsMap.forEach((typeElement, bindingsSet) -> {
             try {
-                writeClass(typeElement, annotatedElements, factoryBindings, stateObservers);
+                writeClass(typeElement, bindingsSet);
             } catch (IOException e) {
-                error(e.getMessage());
                 e.printStackTrace();
             }
-
         });
     }
 
-    private void writeClass(TypeElement typeElement,
-                            List<AnnotatedElement> annotatedElements,
-                            Map<TypeElement, AnnotatedElement> factoryBindings,
-                            Map<TypeElement, TypeSpec> stateObservers) throws IOException {
-
-        MethodSpec constructor = createBindingConstructor(
-                typeElement,
-                annotatedElements,
-                factoryBindings,
-                stateObservers
-        );
-
+    private void writeClass(final TypeElement typeElement, final BindingsSet bindingsSet) throws IOException {
+        MethodSpec constructor = bindingsSet.makeItHappen();
         TypeSpec binder = createClass(typeElement.getSimpleName().toString(), constructor);
 
         JavaFile javaFile = JavaFile.builder(getPackage(typeElement.toString()), binder).build();
         javaFile.writeTo(mFiler);
 
         warning("Generated java class: " + typeElement.getSimpleName() + SCIMITAR_SUFFIX);
-    }
-
-    private MethodSpec createBindingConstructor(TypeElement enclosing,
-                                                List<AnnotatedElement> annotatedElements,
-                                                Map<TypeElement, AnnotatedElement> factoryBindings,
-                                                Map<TypeElement, TypeSpec> stateObservers) {
-
-        MethodSpec.Builder builder = MethodSpec.constructorBuilder()
-                .addModifiers(PUBLIC)
-                .addParameter(ClassName.bestGuess(enclosing.toString()), PARAM_TARGET_NAME);
-
-        // Generates something like the following:
-        // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
-
-        for (AnnotatedElement el : annotatedElements) {
-
-            final AnnotatedElement factory = findViewModelFactory(el, factoryBindings);
-            if (factory != null) {
-                builder.addStatement(BIND_STATEMENT_WITH_FACTORY,
-                        PARAM_TARGET_NAME,
-                        el.getName(),
-                        useAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
-                        PARAM_TARGET_NAME,
-                        PARAM_TARGET_NAME + DOT + factory.getName(),
-                        el.getElement().asType() + CLASS_SUFFIX
-                );
-            } else {
-                builder.addStatement(BIND_STATEMENT,
-                        PARAM_TARGET_NAME,
-                        el.getName(),
-                        useAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
-                        PARAM_TARGET_NAME,
-                        el.getElement().asType() + CLASS_SUFFIX
-                );
-            }
-        }
-
-        if (stateObservers.get(enclosing) != null) {
-            stateObservers.forEach((fieldName, typeSpec) ->
-                    builder.addStatement("$L.$L = $L",
-                            PARAM_TARGET_NAME,
-                            "usersObserver",
-                            typeSpec
-                    ));
-        }
-
-        return builder.build();
-    }
-
-    private AnnotatedElement findViewModelFactory(AnnotatedElement el, Map<TypeElement, AnnotatedElement> factoryBindings) {
-
-        // If there's one specified in the enclosing class use it.
-        final AnnotatedElement factory = factoryBindings.get(el.getEnclosingElement());
-        if (factory != null) {
-            return factory;
-        }
-
-        // Traverse class hierarchy to look for a @ViewModelFactory annotated field with "useAsDefault"
-        return findParentFactory(el.getEnclosingElement(), factoryBindings);
-    }
-
-    // Traverse class hierarchy to look for a @ViewModelFactory annotated field with "useAsDefault = true"
-    private AnnotatedElement findParentFactory(TypeElement el, Map<TypeElement, AnnotatedElement> factoryBindings) {
-        TypeMirror typeMirror = el.getSuperclass();
-        if (typeMirror.getKind() == TypeKind.NONE) {
-            return null;
-        }
-
-        TypeElement parentType = (TypeElement) ((DeclaredType) typeMirror).asElement();
-        FactoryAnnotatedElement parentFactory = (FactoryAnnotatedElement) factoryBindings.get(parentType);
-        if (parentFactory != null && parentFactory.useAsDefault()) {
-            return parentFactory;
-        }
-
-        return findParentFactory(parentType, factoryBindings);
     }
 
     private TypeSpec createClass(String className, MethodSpec constructor) {
@@ -670,17 +539,6 @@ public class ScimitarProcessor extends AbstractProcessor {
     private static boolean isPrivateOrStatic(Element el) {
         final Set<Modifier> modifiers = el.getModifiers();
         return modifiers.contains(Modifier.PRIVATE) || modifiers.contains(Modifier.STATIC);
-    }
-
-    private static MethodSpec buildMethod(String name, ParameterSpec paramSpec, String statement, Object... args) {
-        MethodSpec.Builder method = MethodSpec.methodBuilder(name)
-                .addAnnotation(Override.class)
-                .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
-        if (paramSpec != null) {
-            method.addParameter(paramSpec).build();
-        }
-        method.addStatement(statement, args);
-        return method.build();
     }
 
     private <K, V> String prettyPrint(Map<K, V> map) {
