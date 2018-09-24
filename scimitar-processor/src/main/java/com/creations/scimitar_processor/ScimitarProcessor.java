@@ -2,6 +2,8 @@ package com.creations.scimitar_processor;
 
 import com.creations.scimitar_annotations.BindViewModel;
 import com.creations.scimitar_annotations.ViewModelFactory;
+import com.creations.scimitar_annotations.state.OnError;
+import com.creations.scimitar_annotations.state.OnLoading;
 import com.creations.scimitar_annotations.state.OnSuccess;
 import com.creations.scimitar_annotations.state.ResourceObserver;
 import com.creations.scimitar_processor.elements.AnnotatedElement;
@@ -51,7 +53,6 @@ import javax.tools.Diagnostic;
 
 import static javax.lang.model.element.ElementKind.CLASS;
 import static javax.lang.model.element.Modifier.PUBLIC;
-import static javax.tools.Diagnostic.Kind.WARNING;
 import static javax.xml.bind.JAXBIntrospector.getValue;
 
 /**
@@ -67,6 +68,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     private static final String FRAGMENT_TYPE = "android.app.Fragment";
     private static final String VIEW_MODEL_FACTORY_ANDROID_X = "androidx.lifecycle.ViewModelProvider.Factory";
     private static final String VIEW_MODEL_FACTORY = "android.arch.lifecycle.ViewModelProvider.Factory";
+    private static final String THROWABLE_TYPE = "java.lang.Throwable";
 
     private static final String DOT = ".";
     private static final String CLASS_SUFFIX = ".class";
@@ -142,12 +144,11 @@ public class ScimitarProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment env) {
-        mMessager.printMessage(WARNING, "Process");
 
         final Map<TypeElement, AnnotatedElement> factoryBindings = new HashMap<>();
         final Map<TypeElement, List<AnnotatedElement>> bindingsMap = new HashMap<>();
         final Map<TypeElement, List<AnnotatedElement>> observerBindings = new HashMap<>();
-        final Map<TypeElement, Map<String, ResourceSet>> resourceBindings = new HashMap<>();
+        final Map<TypeElement, Map<String, MethodsSet>> resourceBindings = new HashMap<>();
 
         // Parse @BindViewModel annotated fields
         Set<VariableElement> fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(BindViewModel.class));
@@ -167,25 +168,32 @@ public class ScimitarProcessor extends AbstractProcessor {
             parseResourceObserver(field, observerBindings);
         }
 
-        // Parse @OnSuccess, @OnError and @OnLoading annotated methods
-        final Set<ExecutableElement> methods = new HashSet<>();
-        methods.addAll(ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnSuccess.class)));
-        //methods.addAll(ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnError.class)));
-        //methods.addAll(ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnLoading.class)));
+        // Parse @OnSuccess annotated methods
+        Set<ExecutableElement> methods = ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnSuccess.class));
         for (ExecutableElement method : methods) {
-            //parseResourceMethod(method, resourceBindings);
             parseOnSuccessMethod(method, observerBindings, resourceBindings);
         }
 
-        warning("\nFactory bindings: " + prettyPrint(factoryBindings));
-        warning("\nObserver bindings: " + prettyPrint(observerBindings));
-        warning("\nResource bindings: " + prettyPrint(resourceBindings));
+        // Parse @OnError annotated methods
+        methods = ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnError.class));
+        for (ExecutableElement method : methods) {
+            parseOnErrorMethod(method, observerBindings, resourceBindings);
+        }
+
+        // Parse @OnLoading annotated methods
+        methods = ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnLoading.class));
+        for (ExecutableElement method : methods) {
+            parseOnLoadingMethod(method, observerBindings, resourceBindings);
+        }
 
         // Parse superclasses recursively
         for (TypeElement el : bindingsMap.keySet()) {
             findParent(el, bindingsMap.get(el), bindingsMap);
         }
 
+        warning("\nFactory bindings: " + prettyPrint(factoryBindings));
+        warning("\nObserver bindings: " + prettyPrint(observerBindings));
+        warning("\nResource bindings: " + prettyPrint(resourceBindings));
         warning("\nFinal bindings: " + prettyPrint(bindingsMap));
 
         // Generate classes
@@ -223,8 +231,6 @@ public class ScimitarProcessor extends AbstractProcessor {
         if (checkFieldAccessible(ResourceObserver.class, field)) {
             final ResourceAnnotatedElement el = new ResourceAnnotatedElement(field);
 
-            warning("Parse field: " + el);
-            warning("Type arg: " + el.getType());
             if (!bindingsMap.containsKey(el.getEnclosingElement())) {
                 bindingsMap.put(el.getEnclosingElement(), new ArrayList<>());
             }
@@ -234,10 +240,113 @@ public class ScimitarProcessor extends AbstractProcessor {
 
     private void parseOnSuccessMethod(ExecutableElement method,
                                       Map<TypeElement, List<AnnotatedElement>> observers,
-                                      Map<TypeElement, Map<String, ResourceSet>> resourceBindings) {
+                                      Map<TypeElement, Map<String, MethodsSet>> resourceBindings) {
 
         warning("\nParse onSuccess method: " + method);
 
+        final MethodElement methodEl = MethodElement.create(method);
+        final TypeElement enclosing = methodEl.getEnclosingElement();
+
+        // Check class has @ResourceObserver annotated fields
+        if (!observers.containsKey(enclosing)) {
+            error(String.format("No @ResourceObserver annotated fields were found in class: %s", enclosing));
+            return;
+        }
+
+        // Find @ResourceObserver annotated field with the same id
+        final List<AnnotatedElement> resObservers = findResourceObserversForId(observers.get(enclosing), methodEl.getId());
+        if (resObservers.isEmpty()) {
+            error(String.format("No @ResourceObserver annotated fields were found in class: %s " +
+                    "for id: %s", enclosing, methodEl.getId())
+            );
+            return;
+        }
+
+        // Check parameter is valid
+        final int paramsNr = method.getParameters().size();
+        if (paramsNr > 1) {
+            error(String.format(Locale.US,
+                    "Incorrect number of parameters for method %s, %d parameters found.",
+                    method, paramsNr)
+            );
+            return;
+        } else if (paramsNr == 1) {
+
+            final TypeMirror paramType = method.getParameters().get(0).asType();
+            final TypeMirror resType = ((ResourceAnnotatedElement) resObservers.get(0)).getType();
+
+            if (!mTypeUtils.isSameType(paramType, resType)) {
+                error(String.format(
+                        Locale.US,
+                        "Type mismatch. " +
+                                "@ResourceObserver field %s has type %s, @OnSuccess method %s expects %s",
+                        resObservers.get(0).getName(), resType, method, paramType
+                ));
+                return;
+            }
+        }
+
+        addMethod(methodEl, resourceBindings);
+    }
+
+    private void parseOnErrorMethod(ExecutableElement method,
+                                    Map<TypeElement, List<AnnotatedElement>> observers,
+                                    Map<TypeElement, Map<String, MethodsSet>> resourceBindings) {
+
+        warning("\nParse onError method: " + method);
+
+        if (initialValidation(method, observers)) {
+
+            final int paramsNr = method.getParameters().size();
+            if (paramsNr > 1) {
+                error(String.format(Locale.US,
+                        "Incorrect number of parameters for method %s, %d parameters found.",
+                        method, paramsNr)
+                );
+                return;
+            } else if (paramsNr == 1) {
+
+                final TypeMirror paramType = method.getParameters().get(0).asType();
+                final TypeMirror throwableType = mElements.getTypeElement(THROWABLE_TYPE).asType();
+
+                if (!mTypeUtils.isSameType(paramType, throwableType)) {
+                    error(String.format(
+                            Locale.US,
+                            "Type mismatch. @OnError method %s expects %s got %s",
+                            method, THROWABLE_TYPE, paramType
+                    ));
+                    return;
+                }
+            }
+
+            addMethod(MethodElement.create(method), resourceBindings);
+        }
+
+    }
+
+    private void parseOnLoadingMethod(ExecutableElement method,
+                                      Map<TypeElement, List<AnnotatedElement>> observers,
+                                      Map<TypeElement, Map<String, MethodsSet>> resourceBindings) {
+
+        warning("\nParse onLoading method: " + method);
+
+        if (initialValidation(method, observers)) {
+
+            // Check parameter is valid
+            final int paramsNr = method.getParameters().size();
+            if (!method.getParameters().isEmpty()) {
+                error(String.format(Locale.US,
+                        "@OnLoading method %s takes no parameters. Got %d parameters.",
+                        method, paramsNr)
+                );
+                return;
+            }
+
+            addMethod(MethodElement.create(method), resourceBindings);
+        }
+    }
+
+    private boolean initialValidation(ExecutableElement method, Map<TypeElement, List<AnnotatedElement>> observers) {
         final MethodElement methodEl = MethodElement.create(method);
         final TypeElement enclosing = methodEl.getEnclosingElement();
 
@@ -254,29 +363,7 @@ public class ScimitarProcessor extends AbstractProcessor {
             );
         }
 
-        // Check parameter is valid
-        final int paramsNr = method.getParameters().size();
-        if (paramsNr > 1) {
-            error(String.format(Locale.US,
-                    "Incorrect number of parameters for method %s, %d parameters found.",
-                    method, paramsNr)
-            );
-        } else if (paramsNr == 1) {
-
-            final TypeMirror paramType = method.getParameters().get(0).asType();
-            final TypeMirror resType = ((ResourceAnnotatedElement) resObservers.get(0)).getType();
-
-            if (!mTypeUtils.isSameType(paramType, resType)) {
-                error(String.format(
-                        Locale.US,
-                        "Type mismatch. " +
-                                "@ResourceObserver field %s has type %s, @OnSuccess method %s expects %s",
-                        resObservers.get(0).getName(), resType, method, paramType
-                ));
-            }
-        }
-
-        addMethod(methodEl, resourceBindings);
+        return true;
     }
 
     private List<AnnotatedElement> findResourceObserversForId(List<AnnotatedElement> resObservers, String id) {
@@ -288,17 +375,17 @@ public class ScimitarProcessor extends AbstractProcessor {
                 .collect(Collectors.toList());
     }
 
-    private void addMethod(MethodElement method, Map<TypeElement, Map<String, ResourceSet>> resourceBindings) {
-        final Map<String, ResourceSet> bindings = resourceBindings.containsKey(method.getEnclosingElement())
+    private void addMethod(MethodElement method, Map<TypeElement, Map<String, MethodsSet>> resourceBindings) {
+        final Map<String, MethodsSet> bindings = resourceBindings.containsKey(method.getEnclosingElement())
                 ? resourceBindings.get(method.getEnclosingElement())
                 : new HashMap<>();
 
-        final ResourceSet resourceSet = bindings.containsKey(method.getId())
+        final MethodsSet methodsSet = bindings.containsKey(method.getId())
                 ? bindings.get(method.getId())
-                : new ResourceSet();
+                : new MethodsSet();
 
-        resourceSet.addMethod(method);
-        bindings.put(method.getId(), resourceSet);
+        methodsSet.addMethod(method);
+        bindings.put(method.getId(), methodsSet);
         resourceBindings.put(method.getEnclosingElement(), bindings);
     }
 

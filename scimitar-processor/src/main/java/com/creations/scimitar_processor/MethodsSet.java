@@ -6,7 +6,7 @@ import com.creations.scimitar_processor.elements.methods.MethodElement;
 /**
  * @author Sérgio Serra on 23/09/2018.
  */
-public class ResourceSet {
+public class MethodsSet {
 
     private AnnotatedElement onSuccess, onError, onLoading;
 
@@ -38,7 +38,7 @@ public class ResourceSet {
 
     @Override
     public String toString() {
-        return "ResourceSet{" +
+        return "MethodsSet{" +
                 "onSuccess=" + onSuccess +
                 ", onError=" + onError +
                 ", onLoading=" + onLoading +
