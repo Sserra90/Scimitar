@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -48,32 +47,42 @@ public class BindingsSet {
 
     private boolean useAndroidX;
     private TypeElement element;
-    private AnnotatedElement factory;
-    private Map<TypeElement, AnnotatedElement> factoryBindings;
+    private Map<TypeElement, List<AnnotatedElement>> factoryBindings = new HashMap<>();
     private List<AnnotatedElement> viewModelBindings = new ArrayList<>();
     private List<AnnotatedElement> observerBindings = new ArrayList<>();
     private Map<String, MethodsSet> methodBindings = new HashMap<>();
 
-    BindingsSet(Boolean useAndroidX, TypeElement element, Map<TypeElement, AnnotatedElement> factoryBindings) {
+    BindingsSet(boolean useAndroidX, TypeElement element) {
         this.element = element;
         this.useAndroidX = useAndroidX;
-        this.factoryBindings = factoryBindings;
     }
 
-    public void setFactory(AnnotatedElement factory) {
-        this.factory = factory;
+    public void putFactoriesMap(Map<TypeElement, List<AnnotatedElement>> bindings) {
+        factoryBindings = bindings;
     }
 
-    public void setViewModelBindings(List<AnnotatedElement> viewModelBindings) {
-        this.viewModelBindings = viewModelBindings;
+    public void addViewModelBinding(AnnotatedElement viewModelBinding) {
+        viewModelBindings.add(viewModelBinding);
     }
 
-    public void setObserverBindings(List<AnnotatedElement> observerBindings) {
-        this.observerBindings = observerBindings;
+    public List<AnnotatedElement> getViewModelBindings() {
+        return viewModelBindings;
+    }
+
+    public void addObserverBinding(AnnotatedElement observerBinding) {
+        observerBindings.add(observerBinding);
+    }
+
+    public List<AnnotatedElement> getObserverBindings() {
+        return observerBindings;
     }
 
     public void setMethodBindings(Map<String, MethodsSet> methodBindings) {
         this.methodBindings = methodBindings;
+    }
+
+    public Map<String, MethodsSet> getMethodBindings() {
+        return methodBindings;
     }
 
     public MethodSpec makeItHappen() {
@@ -90,7 +99,7 @@ public class BindingsSet {
         // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
         for (AnnotatedElement el : viewModelBindings) {
 
-            final AnnotatedElement factory = findViewModelFactory(el, factoryBindings);
+            final AnnotatedElement factory = findViewModelFactory(el);
             if (factory != null) {
                 builder.addStatement(BIND_STATEMENT_WITH_FACTORY,
                         PARAM_TARGET_NAME,
@@ -167,12 +176,12 @@ public class BindingsSet {
         return stateObservers;
     }
 
-    private AnnotatedElement findViewModelFactory(AnnotatedElement el, Map<TypeElement, AnnotatedElement> factoryBindings) {
+    private AnnotatedElement findViewModelFactory(AnnotatedElement el) {
 
         // If there's one specified in the enclosing class use it.
-        final AnnotatedElement factory = factoryBindings.get(el.getEnclosingElement());
-        if (factory != null) {
-            return factory;
+        final List<AnnotatedElement> factory = factoryBindings.get(el.getEnclosingElement());
+        if (factory != null && !factory.isEmpty()) {
+            return factory.get(0);
         }
 
         // Traverse class hierarchy to look for a @ViewModelFactory annotated field with "useAsDefault"
@@ -180,16 +189,22 @@ public class BindingsSet {
     }
 
     // Traverse class hierarchy to look for a @ViewModelFactory annotated field with "useAsDefault = true"
-    private AnnotatedElement findParentFactory(TypeElement el, Map<TypeElement, AnnotatedElement> factoryBindings) {
+    private AnnotatedElement findParentFactory(
+            TypeElement el,
+            Map<TypeElement, List<AnnotatedElement>> factoryBindings) {
+
         TypeMirror typeMirror = el.getSuperclass();
         if (typeMirror.getKind() == TypeKind.NONE) {
             return null;
         }
 
         TypeElement parentType = (TypeElement) ((DeclaredType) typeMirror).asElement();
-        FactoryAnnotatedElement parentFactory = (FactoryAnnotatedElement) factoryBindings.get(parentType);
-        if (parentFactory != null && parentFactory.useAsDefault()) {
-            return parentFactory;
+        List<AnnotatedElement> parentFactories = factoryBindings.get(parentType);
+        if (parentFactories != null) {
+            for (AnnotatedElement parentFactory : parentFactories) {
+                if (((FactoryAnnotatedElement) parentFactory).useAsDefault())
+                    return parentFactory;
+            }
         }
 
         return findParentFactory(parentType, factoryBindings);
@@ -210,7 +225,7 @@ public class BindingsSet {
     public String toString() {
         return "BindingsSet{" +
                 "element=" + element +
-                ", factory=" + factory +
+                ", factories=" + factoryBindings +
                 ", viewModelBindings=" + viewModelBindings +
                 ", observerBindings=" + observerBindings +
                 ", methodBindings=" + methodBindings +

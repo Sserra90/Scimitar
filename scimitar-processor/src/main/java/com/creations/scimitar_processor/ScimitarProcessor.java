@@ -15,8 +15,6 @@ import com.google.auto.service.AutoService;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import java.io.IOException;
@@ -55,7 +53,6 @@ import javax.tools.Diagnostic;
 
 import static javax.lang.model.element.ElementKind.CLASS;
 import static javax.lang.model.element.Modifier.PUBLIC;
-import static javax.xml.bind.JAXBIntrospector.getValue;
 
 /**
  * Scimitar custom annotation processor
@@ -135,92 +132,52 @@ public class ScimitarProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment env) {
 
-        final Map<TypeElement, AnnotatedElement> factoryBindings = new HashMap<>();
-        final Map<TypeElement, List<AnnotatedElement>> viewModelBindingsMap = new HashMap<>();
-        final Map<TypeElement, List<AnnotatedElement>> observerBindings = new HashMap<>();
-        final Map<TypeElement, Map<String, MethodsSet>> methodBindings = new HashMap<>();
+        final Map<TypeElement, BindingsSet> bindingsMap = new HashMap<>();
 
         // Parse @BindViewModel annotated fields
         Set<VariableElement> fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(BindViewModel.class));
         for (VariableElement field : fields) {
-            parseBindViewModel(field, viewModelBindingsMap);
+            parseBindViewModel(field, bindingsMap);
         }
 
         // Parse @ViewModelFactory annotated fields
+        final Map<TypeElement, List<AnnotatedElement>> factoriesMap = new HashMap<>();
         fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(ViewModelFactory.class));
         for (VariableElement field : fields) {
-            parseViewModelFactory(field, factoryBindings);
+            parseViewModelFactory(field, factoriesMap);
         }
+        bindingsMap.values().forEach(bindingsSet -> bindingsSet.putFactoriesMap(factoriesMap));
 
         // Parse @ResourceObserver annotated fields
         fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(ResourceObserver.class));
         for (VariableElement field : fields) {
-            parseResourceObserver(field, observerBindings);
+            parseResourceObserver(field, bindingsMap);
         }
 
         // Parse @OnSuccess annotated methods
         Set<ExecutableElement> methods = ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnSuccess.class));
         for (ExecutableElement method : methods) {
-            parseOnSuccessMethod(method, observerBindings, methodBindings);
+            parseOnSuccessMethod(method, bindingsMap);
         }
 
         // Parse @OnError annotated methods
         methods = ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnError.class));
         for (ExecutableElement method : methods) {
-            parseOnErrorMethod(method, observerBindings, methodBindings);
+            parseOnErrorMethod(method, bindingsMap);
         }
 
         // Parse @OnLoading annotated methods
         methods = ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnLoading.class));
         for (ExecutableElement method : methods) {
-            parseOnLoadingMethod(method, observerBindings, methodBindings);
+            parseOnLoadingMethod(method, bindingsMap);
         }
 
         // Parse superclasses recursively
-        for (TypeElement el : viewModelBindingsMap.keySet()) {
-            findParent(el, viewModelBindingsMap.get(el), viewModelBindingsMap);
+        for (TypeElement el : bindingsMap.keySet()) {
+            findParent(el, bindingsMap.get(el).getViewModelBindings(), bindingsMap);
         }
 
-        /*warning("\nFactory bindings: " + prettyPrint(factoryBindings));
-        warning("\nObserver bindings: " + prettyPrint(observerBindings));
-        warning("\nMethod bindings: " + prettyPrint(methodBindings));
-        warning("\nFinal bindings: " + prettyPrint(viewModelBindingsMap));*/
-
-        final Map<TypeElement, BindingsSet> bindingsMap = new HashMap<>();
-        factoryBindings.forEach((typeElement, annotatedElement) -> {
-            if (!bindingsMap.containsKey(typeElement)) {
-                final BindingsSet set1 = new BindingsSet(useAndroidX, typeElement, factoryBindings);
-                set1.setFactory(annotatedElement);
-                bindingsMap.put(typeElement, set1);
-            }
-        });
-        viewModelBindingsMap.forEach((typeElement, annotatedElements) -> {
-            if (!bindingsMap.containsKey(typeElement)) {
-                final BindingsSet set1 = new BindingsSet(useAndroidX, typeElement, factoryBindings);
-                set1.setViewModelBindings(annotatedElements);
-                bindingsMap.put(typeElement, set1);
-            } else {
-                bindingsMap.get(typeElement).setViewModelBindings(annotatedElements);
-            }
-        });
-        methodBindings.forEach((typeElement, methodsSet) -> {
-            if (!bindingsMap.containsKey(typeElement)) {
-                final BindingsSet set1 = new BindingsSet(useAndroidX, typeElement, factoryBindings);
-                set1.setMethodBindings(methodsSet);
-                bindingsMap.put(typeElement, set1);
-            } else {
-                bindingsMap.get(typeElement).setMethodBindings(methodsSet);
-            }
-        });
-        observerBindings.forEach((typeElement, annotatedElements) -> {
-            if (!bindingsMap.containsKey(typeElement)) {
-                final BindingsSet set1 = new BindingsSet(useAndroidX, typeElement, factoryBindings);
-                set1.setObserverBindings(annotatedElements);
-                bindingsMap.put(typeElement, set1);
-            } else {
-                bindingsMap.get(typeElement).setObserverBindings(annotatedElements);
-            }
-        });
+        warning("\nBindings map: " + prettyPrint(bindingsMap));
 
         // Generate classes
         generateClasses(bindingsMap);
@@ -228,45 +185,46 @@ public class ScimitarProcessor extends AbstractProcessor {
         return true;
     }
 
-    private void parseBindViewModel(VariableElement field, Map<TypeElement, List<AnnotatedElement>> bindingsMap) {
-        warning("Name: " + field.getSimpleName());
-        warning("Type: " + getValue(field.getAnnotation(BindViewModel.class)));
-        warning("Enclosing element: " + field.getEnclosingElement().toString());
-
+    private void parseBindViewModel(VariableElement field, Map<TypeElement, BindingsSet> bindingsMap) {
         if (checkFieldAccessible(BindViewModel.class, field)) {
 
             final AnnotatedElement el = new ViewModelAnnotatedElement(field);
+
             if (!bindingsMap.containsKey(el.getEnclosingElement())) {
-                bindingsMap.put(el.getEnclosingElement(), new ArrayList<>());
+                bindingsMap.put(el.getEnclosingElement(), new BindingsSet(useAndroidX, el.getEnclosingElement()));
             }
-            bindingsMap.get(el.getEnclosingElement()).add(el);
+            bindingsMap.get(el.getEnclosingElement()).addViewModelBinding(el);
         }
     }
 
-    private void parseViewModelFactory(VariableElement field, Map<TypeElement, AnnotatedElement> bindingsMap) {
+    private void parseViewModelFactory(VariableElement field, Map<TypeElement, List<AnnotatedElement>> factoriesMap) {
         final TypeMirror factoryType = mElements.getTypeElement(
                 useAndroidX ? VIEW_MODEL_FACTORY_ANDROID_X : VIEW_MODEL_FACTORY
         ).asType();
 
         if (checkFieldAccessible(ViewModelFactory.class, field) && isAssignableTo(field.asType(), factoryType)) {
-            bindingsMap.put((TypeElement) field.getEnclosingElement(), new FactoryAnnotatedElement(field));
+
+            final AnnotatedElement el = new FactoryAnnotatedElement(field);
+            if (!factoriesMap.containsKey(el.getEnclosingElement())) {
+                factoriesMap.put(el.getEnclosingElement(), new ArrayList<>());
+            }
+
+            factoriesMap.get(el.getEnclosingElement()).add(el);
         }
     }
 
-    private void parseResourceObserver(VariableElement field, Map<TypeElement, List<AnnotatedElement>> bindingsMap) {
+    private void parseResourceObserver(VariableElement field, Map<TypeElement, BindingsSet> bindingsMap) {
         if (checkFieldAccessible(ResourceObserver.class, field)) {
             final ResourceAnnotatedElement el = new ResourceAnnotatedElement(field);
 
             if (!bindingsMap.containsKey(el.getEnclosingElement())) {
-                bindingsMap.put(el.getEnclosingElement(), new ArrayList<>());
+                bindingsMap.put(el.getEnclosingElement(), new BindingsSet(useAndroidX, el.getEnclosingElement()));
             }
-            bindingsMap.get(el.getEnclosingElement()).add(el);
+            bindingsMap.get(el.getEnclosingElement()).addObserverBinding(el);
         }
     }
 
-    private void parseOnSuccessMethod(ExecutableElement method,
-                                      Map<TypeElement, List<AnnotatedElement>> observers,
-                                      Map<TypeElement, Map<String, MethodsSet>> resourceBindings) {
+    private void parseOnSuccessMethod(ExecutableElement method, Map<TypeElement, BindingsSet> bindingsMap) {
 
         warning("\nParse onSuccess method: " + method);
 
@@ -280,13 +238,17 @@ public class ScimitarProcessor extends AbstractProcessor {
         }
 
         // Check class has @ResourceObserver annotated fields
-        if (!observers.containsKey(enclosing)) {
+        if (bindingsMap.containsKey(enclosing) && bindingsMap.get(enclosing).getObserverBindings().isEmpty()) {
             error(String.format("No @ResourceObserver annotated fields were found in class: %s", enclosing));
             return;
         }
 
         // Find @ResourceObserver annotated field with the same id
-        final List<AnnotatedElement> resObservers = findResourceObserversForId(observers.get(enclosing), methodEl.getId());
+        final List<AnnotatedElement> resObservers = findResourceObserversForId(
+                bindingsMap.get(enclosing).getObserverBindings(),
+                methodEl.getId()
+        );
+
         if (resObservers.isEmpty()) {
             error(String.format("No @ResourceObserver annotated fields were found in class: %s " +
                     "for id: %s", enclosing, methodEl.getId())
@@ -318,16 +280,14 @@ public class ScimitarProcessor extends AbstractProcessor {
             }
         }
 
-        addMethod(methodEl, resourceBindings);
+        addMethod(methodEl, bindingsMap);
     }
 
-    private void parseOnErrorMethod(ExecutableElement method,
-                                    Map<TypeElement, List<AnnotatedElement>> observers,
-                                    Map<TypeElement, Map<String, MethodsSet>> resourceBindings) {
+    private void parseOnErrorMethod(ExecutableElement method, Map<TypeElement, BindingsSet> bindingsMap) {
 
         warning("\nParse onError method: " + method);
 
-        if (initialValidation(method, observers)) {
+        if (initialValidation(method, bindingsMap)) {
 
             final int paramsNr = method.getParameters().size();
             if (paramsNr > 1) {
@@ -351,18 +311,16 @@ public class ScimitarProcessor extends AbstractProcessor {
                 }
             }
 
-            addMethod(MethodElement.create(method), resourceBindings);
+            addMethod(MethodElement.create(method), bindingsMap);
         }
 
     }
 
-    private void parseOnLoadingMethod(ExecutableElement method,
-                                      Map<TypeElement, List<AnnotatedElement>> observers,
-                                      Map<TypeElement, Map<String, MethodsSet>> resourceBindings) {
+    private void parseOnLoadingMethod(ExecutableElement method, Map<TypeElement, BindingsSet> bindingsMap) {
 
         warning("\nParse onLoading method: " + method);
 
-        if (initialValidation(method, observers)) {
+        if (initialValidation(method, bindingsMap)) {
 
             // Check parameter is valid
             final int paramsNr = method.getParameters().size();
@@ -374,11 +332,11 @@ public class ScimitarProcessor extends AbstractProcessor {
                 return;
             }
 
-            addMethod(MethodElement.create(method), resourceBindings);
+            addMethod(MethodElement.create(method), bindingsMap);
         }
     }
 
-    private boolean initialValidation(ExecutableElement method, Map<TypeElement, List<AnnotatedElement>> observers) {
+    private boolean initialValidation(ExecutableElement method, Map<TypeElement, BindingsSet> bindingsMap) {
         final MethodElement methodEl = MethodElement.create(method);
         final TypeElement enclosing = methodEl.getEnclosingElement();
 
@@ -393,13 +351,17 @@ public class ScimitarProcessor extends AbstractProcessor {
         }
 
         // Check class has @ResourceObserver annotated fields
-        if (!observers.containsKey(enclosing)) {
+        if (bindingsMap.containsKey(enclosing) && bindingsMap.get(enclosing).getObserverBindings().isEmpty()) {
             error(String.format("No @ResourceObserver annotated fields were found in class: %s", enclosing));
             return false;
         }
 
         // Find @ResourceObserver annotated field with the same id
-        final List<AnnotatedElement> resObservers = findResourceObserversForId(observers.get(enclosing), methodEl.getId());
+        final List<AnnotatedElement> resObservers = findResourceObserversForId(
+                bindingsMap.get(enclosing).getObserverBindings(),
+                methodEl.getId()
+        );
+
         if (resObservers.isEmpty()) {
             error(String.format("No @ResourceObserver annotated fields were found in class: %s " +
                     "for id: %s", enclosing, methodEl.getId())
@@ -419,9 +381,10 @@ public class ScimitarProcessor extends AbstractProcessor {
                 .collect(Collectors.toList());
     }
 
-    private void addMethod(MethodElement method, Map<TypeElement, Map<String, MethodsSet>> resourceBindings) {
-        final Map<String, MethodsSet> bindings = resourceBindings.containsKey(method.getEnclosingElement())
-                ? resourceBindings.get(method.getEnclosingElement())
+    private void addMethod(MethodElement method, Map<TypeElement, BindingsSet> bindingsMap) {
+
+        final Map<String, MethodsSet> bindings = bindingsMap.containsKey(method.getEnclosingElement())
+                ? bindingsMap.get(method.getEnclosingElement()).getMethodBindings()
                 : new HashMap<>();
 
         final MethodsSet methodsSet = bindings.containsKey(method.getId())
@@ -430,7 +393,7 @@ public class ScimitarProcessor extends AbstractProcessor {
 
         methodsSet.addMethod(method);
         bindings.put(method.getId(), methodsSet);
-        resourceBindings.put(method.getEnclosingElement(), bindings);
+        bindingsMap.get(method.getEnclosingElement()).setMethodBindings(bindings);
     }
 
     private boolean checkFieldAccessible(Class<? extends Annotation> annotationClass, Element element) {
@@ -489,7 +452,7 @@ public class ScimitarProcessor extends AbstractProcessor {
 
     private void findParent(TypeElement type,
                             List<AnnotatedElement> elements,
-                            Map<TypeElement, List<AnnotatedElement>> bindings) {
+                            Map<TypeElement, BindingsSet> bindingsMap) {
 
         TypeMirror typeMirror = type.getSuperclass();
         if (typeMirror.getKind() == TypeKind.NONE) {
@@ -497,12 +460,15 @@ public class ScimitarProcessor extends AbstractProcessor {
         }
 
         TypeElement parentType = (TypeElement) ((DeclaredType) typeMirror).asElement();
-        List<AnnotatedElement> parentElements = bindings.get(parentType);
+        List<AnnotatedElement> parentElements = bindingsMap.containsKey(parentType)
+                ? bindingsMap.get(parentType).getViewModelBindings()
+                : null;
+
         if (parentElements != null) {
             elements.addAll(parentElements);
         }
 
-        findParent(parentType, elements, bindings);
+        findParent(parentType, elements, bindingsMap);
     }
 
     private void generateClasses(final Map<TypeElement, BindingsSet> bindingsMap) {
