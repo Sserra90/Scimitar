@@ -34,8 +34,11 @@ ext {
 
 dependencies {
 
-    implementation project(":scimitar-runtime")
-    kapt project(":scimitar-processor")
+    //implementation project(":scimitar-runtime")
+    //kapt project(":scimitar-processor")
+
+    implementation 'org.bitbucket.sserra.scimitar:scimitar-processor:dev-1404d2eccf-1'
+    implementation 'org.bitbucket.sserra.scimitar:scimitar-runtime:dev-1404d2eccf-1'
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "androidx.appcompat:appcompat:$appCompat"

@@ -1,4 +1,8 @@
 apply plugin: 'java-library'
+apply plugin: 'com.github.dcendents.android-maven'
+
+// Jitpack group
+group = 'org.bitbucket.Sserra.scimitar'
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
