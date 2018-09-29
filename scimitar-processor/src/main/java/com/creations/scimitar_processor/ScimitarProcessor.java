@@ -172,8 +172,6 @@ public class ScimitarProcessor extends AbstractProcessor {
             parseOnLoadingMethod(method, bindingsMap);
         }
 
-        print(bindingsMap, factoriesMap);
-
         // Parse superclasses recursively
         for (TypeElement el : bindingsMap.keySet()) {
             findParent(el, bindingsMap.get(el).getViewModelBindings(), bindingsMap);

@@ -2,6 +2,7 @@ package com.creations.scimitar_processor;
 
 import com.creations.scimitar_processor.elements.AnnotatedElement;
 import com.creations.scimitar_processor.elements.FactoryAnnotatedElement;
+import com.creations.scimitar_processor.elements.ResourceAnnotatedElement;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
@@ -116,11 +117,26 @@ public class BindingsSet {
         return builder.build();
     }
 
+    private ResourceAnnotatedElement findResourceObserverForId(String id) {
+        for (AnnotatedElement observer : observerBindings) {
+            if (((ResourceAnnotatedElement) observer).getId().equals(id)) {
+                return (ResourceAnnotatedElement) observer;
+            }
+        }
+        return null;
+    }
+
     private List<TypeSpec> createResourceObserversType() {
         final List<TypeSpec> stateObservers = new ArrayList<>();
         methodBindings.forEach((id, methodsSet) -> {
 
-            ClassName stateTypeParam = ClassName.get("com.creations.scimitar", "User");
+            final ResourceAnnotatedElement observer = findResourceObserverForId(id);
+            if (observer == null){
+                return;
+            }
+
+            final ClassName stateTypeParam = ClassName.bestGuess(observer.getType().toString());
+
             final TypeSpec.Builder stateObserverBuilder = TypeSpec
                     .anonymousClassBuilder("")
                     .superclass(ParameterizedTypeName.get(STATE_OBSERVER_TYPE, stateTypeParam));
