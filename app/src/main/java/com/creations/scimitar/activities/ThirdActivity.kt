@@ -2,17 +2,17 @@ package com.creations.scimitar.activities
 
 import android.os.Bundle
 import android.util.Log
-import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.R
+import com.creations.scimitar.entities.Repo
+import com.creations.scimitar.entities.User
+import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.vm.ScimitarViewModelFactory
-import com.creations.scimitar.User
 import com.creations.scimitar_annotations.BindViewModel
 import com.creations.scimitar_annotations.ViewModelFactory
 import com.creations.scimitar_annotations.state.OnError
 import com.creations.scimitar_annotations.state.OnLoading
 import com.creations.scimitar_annotations.state.OnSuccess
 import com.creations.scimitar_annotations.state.ResourceObserver
-import com.creations.scimitar_runtime.state.Resource
 import com.creations.scimitar_runtime.state.StateObserver
 
 class ThirdActivity : SecondActivity() {
@@ -29,6 +29,9 @@ class ThirdActivity : SecondActivity() {
 
     @ResourceObserver(id = "users")
     lateinit var usersObserver: StateObserver<User>
+
+    @ResourceObserver(id = "repos")
+    lateinit var reposObserver: StateObserver<List<Repo>>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         factory = ScimitarViewModelFactory()
@@ -54,4 +57,10 @@ class ThirdActivity : SecondActivity() {
     fun showLoading() {
         Log.d(TAG, "Show loading")
     }
+
+    @OnSuccess(id = "repos")
+    fun renderRepos(repos: List<Repo>) {
+        Log.d(TAG, "Show repo: $repos")
+    }
+
 }

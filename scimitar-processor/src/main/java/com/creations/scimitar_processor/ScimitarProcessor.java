@@ -20,11 +20,9 @@ import com.squareup.javapoet.TypeSpec;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -191,7 +189,13 @@ public class ScimitarProcessor extends AbstractProcessor {
             final AnnotatedElement el = new ViewModelAnnotatedElement(field);
 
             if (!bindingsMap.containsKey(el.getEnclosingElement())) {
-                bindingsMap.put(el.getEnclosingElement(), new BindingsSet(useAndroidX, el.getEnclosingElement()));
+                bindingsMap.put(
+                        el.getEnclosingElement(),
+                        new BindingsSet(
+                                useAndroidX, mMessager,
+                                mTypeUtils, el.getEnclosingElement()
+                        )
+                );
             }
             bindingsMap.get(el.getEnclosingElement()).addViewModelBinding(el);
         }
@@ -218,7 +222,13 @@ public class ScimitarProcessor extends AbstractProcessor {
             final ResourceAnnotatedElement el = new ResourceAnnotatedElement(field);
 
             if (!bindingsMap.containsKey(el.getEnclosingElement())) {
-                bindingsMap.put(el.getEnclosingElement(), new BindingsSet(useAndroidX, el.getEnclosingElement()));
+                bindingsMap.put(
+                        el.getEnclosingElement(),
+                        new BindingsSet(
+                                useAndroidX, mMessager,
+                                mTypeUtils, el.getEnclosingElement()
+                        )
+                );
             }
             bindingsMap.get(el.getEnclosingElement()).addObserverBinding(el);
         }
@@ -264,20 +274,7 @@ public class ScimitarProcessor extends AbstractProcessor {
                     method, paramsNr)
             );
             return;
-        } else if (paramsNr == 1) {
 
-            final TypeMirror paramType = method.getParameters().get(0).asType();
-            final TypeMirror resType = ((ResourceAnnotatedElement) resObservers.get(0)).getType();
-
-            if (!mTypeUtils.isSameType(paramType, resType)) {
-                error(String.format(
-                        Locale.US,
-                        "Type mismatch. " +
-                                "@ResourceObserver field %s has type %s, @OnSuccess method %s expects %s",
-                        resObservers.get(0).getName(), resType, method, paramType
-                ));
-                return;
-            }
         }
 
         addMethod(methodEl, bindingsMap);

@@ -7,18 +7,24 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.processing.Messager;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.Types;
+import javax.tools.Diagnostic;
 
 import static javax.lang.model.element.Modifier.PUBLIC;
 
@@ -41,16 +47,21 @@ public class BindingsSet {
             ClassName.get("com.creations.scimitar_runtime.state", "StateObserver");
     private static final ClassName THROWABLE_TYPE = ClassName.get("java.lang", "Throwable");
 
-    private boolean useAndroidX;
-    private TypeElement element;
+    private boolean mUseAndroidX;
+    private TypeElement mElement;
+    private Messager mMessager;
+    private Types mTypeUtils;
+
     private Map<TypeElement, Set<AnnotatedElement>> factoryBindings = new HashMap<>();
     private Set<AnnotatedElement> viewModelBindings = new HashSet<>();
     private Set<AnnotatedElement> observerBindings = new HashSet<>();
     private Map<String, MethodsSet> methodBindings = new HashMap<>();
 
-    BindingsSet(boolean useAndroidX, TypeElement element) {
-        this.element = element;
-        this.useAndroidX = useAndroidX;
+    BindingsSet(boolean useAndroidX, Messager messager, Types typeUtils, TypeElement element) {
+        mElement = element;
+        mMessager = messager;
+        mTypeUtils = typeUtils;
+        mUseAndroidX = useAndroidX;
     }
 
     public void putFactoriesMap(Map<TypeElement, Set<AnnotatedElement>> bindings) {
@@ -89,7 +100,7 @@ public class BindingsSet {
 
         MethodSpec.Builder builder = MethodSpec.constructorBuilder()
                 .addModifiers(PUBLIC)
-                .addParameter(ClassName.bestGuess(element.toString()), TARGET_NAME);
+                .addParameter(ClassName.bestGuess(mElement.toString()), TARGET_NAME);
 
         // Generates something like the following:
         // target.vm = ViewModelProviders.of(target,factory).get(com.creations.scimitar.MyViewModel.class);
@@ -98,7 +109,7 @@ public class BindingsSet {
             builder.addStatement("$L.$L = $T.of($L,$L).get($L)",
                     TARGET_NAME,
                     el.getName(),
-                    useAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
+                    mUseAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
                     TARGET_NAME,
                     factory != null ? TARGET_NAME + DOT + factory.getName() : "null",
                     el.getElement().asType() + CLASS_SUFFIX
@@ -131,6 +142,48 @@ public class BindingsSet {
         return null;
     }
 
+    private TypeName parseType(TypeMirror type) {
+
+        // If it's not parameterized use bestGuess to return the type
+        if (!isParameterized(type)){
+            return ClassName.bestGuess(type.toString());
+        }
+
+        final List<ClassName> classNames = new ArrayList<>();
+        final List<TypeMirror> typeArguments = new ArrayList<>();
+        typeArguments.add(mTypeUtils.erasure(type)); // Add erased parent type
+        getTypeArguments(type, typeArguments);
+
+        for (TypeMirror typeArgument : typeArguments) {
+            classNames.add(ClassName.bestGuess(typeArgument.toString()));
+        }
+
+        return buildParameterizedType(classNames);
+    }
+
+    private void getTypeArguments(TypeMirror type, List<TypeMirror> types) {
+        final List<? extends TypeMirror> typeArguments = ((DeclaredType) type).getTypeArguments();
+
+        for (TypeMirror typeArgument : typeArguments) {
+            if (isParameterized(typeArgument)) {
+                types.add(mTypeUtils.erasure(typeArgument));
+                getTypeArguments(typeArgument, types);
+            } else {
+                types.add(typeArgument);
+            }
+        }
+    }
+
+    private ParameterizedTypeName buildParameterizedType(List<ClassName> classNames) {
+        mMessager.printMessage(Diagnostic.Kind.WARNING, "Build parameterized type for: " + classNames);
+        return ParameterizedTypeName.get(
+                classNames.get(0),
+                classNames.size() > 2
+                        ? buildParameterizedType(classNames.subList(1, classNames.size()))
+                        : classNames.get(1)
+        );
+    }
+
     private TypeSpec createResourceObserverType(String id, MethodsSet methodsSet) {
 
         final ResourceAnnotatedElement observer = findResourceObserverForId(id);
@@ -138,7 +191,7 @@ public class BindingsSet {
             return null;
         }
 
-        final ClassName stateTypeParam = ClassName.bestGuess(observer.getType().toString());
+        TypeName stateTypeParam = parseType(observer.getType());
 
         final TypeSpec.Builder stateObserverBuilder = TypeSpec
                 .anonymousClassBuilder("")
@@ -192,9 +245,7 @@ public class BindingsSet {
     }
 
     // Traverse class hierarchy to look for a @ViewModelFactory annotated field with "useAsDefault = true"
-    private AnnotatedElement findParentFactory(
-            TypeElement el,
-            Map<TypeElement, Set<AnnotatedElement>> factoryBindings) {
+    private AnnotatedElement findParentFactory(TypeElement el, Map<TypeElement, Set<AnnotatedElement>> factoryBindings) {
 
         TypeMirror typeMirror = el.getSuperclass();
         if (typeMirror.getKind() == TypeKind.NONE) {
@@ -224,10 +275,14 @@ public class BindingsSet {
         return method.build();
     }
 
+    private static boolean isParameterized(TypeMirror typeMirror) {
+        return !((DeclaredType) typeMirror).getTypeArguments().isEmpty();
+    }
+
     @Override
     public String toString() {
         return "BindingsSet{" +
-                "element=" + element +
+                "mElement=" + mElement +
                 ", factories=" + factoryBindings +
                 ", viewModelBindings=" + viewModelBindings +
                 ", observerBindings=" + observerBindings +
