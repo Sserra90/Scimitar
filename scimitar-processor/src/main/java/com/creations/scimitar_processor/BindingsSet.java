@@ -9,10 +9,8 @@ import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -107,12 +105,19 @@ public class BindingsSet {
             );
         }
 
-        createResourceObserversType().forEach((typeSpec) ->
-                builder.addStatement("$L.$L = $L",
-                        TARGET_NAME,
-                        "usersObserver",
-                        typeSpec
-                ));
+        observerBindings.forEach(observer -> {
+            final String id = ((ResourceAnnotatedElement) observer).getId();
+            if (methodBindings.containsKey(id)) {
+                TypeSpec stateObserverSpec = createResourceObserverType(id, methodBindings.get(id));
+                if (stateObserverSpec != null) {
+                    builder.addStatement("$L.$L = $L",
+                            TARGET_NAME,
+                            observer.getElement(),
+                            stateObserverSpec
+                    );
+                }
+            }
+        });
 
         return builder.build();
     }
@@ -126,56 +131,52 @@ public class BindingsSet {
         return null;
     }
 
-    private List<TypeSpec> createResourceObserversType() {
-        final List<TypeSpec> stateObservers = new ArrayList<>();
-        methodBindings.forEach((id, methodsSet) -> {
+    private TypeSpec createResourceObserverType(String id, MethodsSet methodsSet) {
 
-            final ResourceAnnotatedElement observer = findResourceObserverForId(id);
-            if (observer == null){
-                return;
-            }
+        final ResourceAnnotatedElement observer = findResourceObserverForId(id);
+        if (observer == null) {
+            return null;
+        }
 
-            final ClassName stateTypeParam = ClassName.bestGuess(observer.getType().toString());
+        final ClassName stateTypeParam = ClassName.bestGuess(observer.getType().toString());
 
-            final TypeSpec.Builder stateObserverBuilder = TypeSpec
-                    .anonymousClassBuilder("")
-                    .superclass(ParameterizedTypeName.get(STATE_OBSERVER_TYPE, stateTypeParam));
+        final TypeSpec.Builder stateObserverBuilder = TypeSpec
+                .anonymousClassBuilder("")
+                .superclass(ParameterizedTypeName.get(STATE_OBSERVER_TYPE, stateTypeParam));
 
-            if (methodsSet.success() != null) {
-                stateObserverBuilder.addMethod(
-                        buildMethod(
-                                ON_SUCCESS, ParameterSpec.builder(stateTypeParam, "data").build(),
-                                "$L.$L($N)",
-                                TARGET_NAME,
-                                methodsSet.success().getName(),
-                                "data"
-                        ));
-            }
+        if (methodsSet.success() != null) {
+            stateObserverBuilder.addMethod(
+                    buildMethod(
+                            ON_SUCCESS, ParameterSpec.builder(stateTypeParam, "data").build(),
+                            "$L.$L($N)",
+                            TARGET_NAME,
+                            methodsSet.success().getName(),
+                            "data"
+                    ));
+        }
 
-            if (methodsSet.error() != null) {
-                stateObserverBuilder.addMethod(
-                        buildMethod(
-                                ON_ERROR, ParameterSpec.builder(THROWABLE_TYPE, "error").build(),
-                                "$L.$L($N)",
-                                TARGET_NAME,
-                                methodsSet.error().getName(),
-                                "error"
-                        )
-                );
-            }
+        if (methodsSet.error() != null) {
+            stateObserverBuilder.addMethod(
+                    buildMethod(
+                            ON_ERROR, ParameterSpec.builder(THROWABLE_TYPE, "error").build(),
+                            "$L.$L($N)",
+                            TARGET_NAME,
+                            methodsSet.error().getName(),
+                            "error"
+                    )
+            );
+        }
 
-            if (methodsSet.loading() != null) {
-                stateObserverBuilder.addMethod(
-                        buildMethod(
-                                ON_LOADING, null, "$L.$L()",
-                                TARGET_NAME, methodsSet.loading().getName()
-                        )
-                );
-            }
+        if (methodsSet.loading() != null) {
+            stateObserverBuilder.addMethod(
+                    buildMethod(
+                            ON_LOADING, null, "$L.$L()",
+                            TARGET_NAME, methodsSet.loading().getName()
+                    )
+            );
+        }
 
-            stateObservers.add(stateObserverBuilder.build());
-        });
-        return stateObservers;
+        return stateObserverBuilder.build();
     }
 
     private AnnotatedElement findViewModelFactory(AnnotatedElement el) {
