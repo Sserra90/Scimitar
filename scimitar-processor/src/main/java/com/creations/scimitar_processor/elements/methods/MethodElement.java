@@ -4,6 +4,8 @@ import com.creations.scimitar_annotations.state.OnLoading;
 import com.creations.scimitar_annotations.state.OnSuccess;
 import com.creations.scimitar_processor.elements.AnnotatedElement;
 
+import java.util.Objects;
+
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 
@@ -16,16 +18,21 @@ public abstract class MethodElement extends AnnotatedElement {
         ERROR, SUCCESS, LOADING
     }
 
-    private ExecutableElement executableElement;
+    private Type type;
+    private String id;
 
-    MethodElement(Element element) {
-        super(element);
-        executableElement = (ExecutableElement) element;
-    }
+    private ExecutableElement executableElement;
 
     public abstract Type type();
 
     public abstract String getId();
+
+    MethodElement(Element element) {
+        super(element);
+        executableElement = (ExecutableElement) element;
+        type = type();
+        id = getId();
+    }
 
     public static MethodElement create(ExecutableElement el) {
         if (el.getAnnotation(OnLoading.class) != null) {
@@ -42,5 +49,21 @@ public abstract class MethodElement extends AnnotatedElement {
         return "MethodElement{" +
                 "executableElement=" + executableElement +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        MethodElement that = (MethodElement) o;
+        return type == that.type &&
+                Objects.equals(id, that.id) &&
+                Objects.equals(executableElement, that.executableElement);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), type, id, executableElement);
     }
 }

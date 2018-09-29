@@ -10,8 +10,10 @@ import com.squareup.javapoet.TypeSpec;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -23,14 +25,9 @@ import static javax.lang.model.element.Modifier.PUBLIC;
 
 public class BindingsSet {
 
-    private static final String PARAM_TARGET_NAME = "target";
+    private static final String TARGET_NAME = "target";
     private static final String DOT = ".";
     private static final String CLASS_SUFFIX = ".class";
-
-    // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
-    private static final String BIND_STATEMENT = "$L.$L = $T.of($L).get($L)";
-    // target.vm = ViewModelProviders.of(target,factory).get(com.creations.scimitar.MyViewModel.class);
-    private static final String BIND_STATEMENT_WITH_FACTORY = "$L.$L = $T.of($L,$L).get($L)";
 
     private static final ClassName VIEW_MODEL_PROVIDER_CLASS_ANDROID_X
             = ClassName.get("androidx.lifecycle", "ViewModelProviders");
@@ -47,9 +44,9 @@ public class BindingsSet {
 
     private boolean useAndroidX;
     private TypeElement element;
-    private Map<TypeElement, List<AnnotatedElement>> factoryBindings = new HashMap<>();
-    private List<AnnotatedElement> viewModelBindings = new ArrayList<>();
-    private List<AnnotatedElement> observerBindings = new ArrayList<>();
+    private Map<TypeElement, Set<AnnotatedElement>> factoryBindings = new HashMap<>();
+    private Set<AnnotatedElement> viewModelBindings = new HashSet<>();
+    private Set<AnnotatedElement> observerBindings = new HashSet<>();
     private Map<String, MethodsSet> methodBindings = new HashMap<>();
 
     BindingsSet(boolean useAndroidX, TypeElement element) {
@@ -57,7 +54,7 @@ public class BindingsSet {
         this.useAndroidX = useAndroidX;
     }
 
-    public void putFactoriesMap(Map<TypeElement, List<AnnotatedElement>> bindings) {
+    public void putFactoriesMap(Map<TypeElement, Set<AnnotatedElement>> bindings) {
         factoryBindings = bindings;
     }
 
@@ -65,7 +62,7 @@ public class BindingsSet {
         viewModelBindings.add(viewModelBinding);
     }
 
-    public List<AnnotatedElement> getViewModelBindings() {
+    public Set<AnnotatedElement> getViewModelBindings() {
         return viewModelBindings;
     }
 
@@ -73,7 +70,7 @@ public class BindingsSet {
         observerBindings.add(observerBinding);
     }
 
-    public List<AnnotatedElement> getObserverBindings() {
+    public Set<AnnotatedElement> getObserverBindings() {
         return observerBindings;
     }
 
@@ -93,36 +90,25 @@ public class BindingsSet {
 
         MethodSpec.Builder builder = MethodSpec.constructorBuilder()
                 .addModifiers(PUBLIC)
-                .addParameter(ClassName.bestGuess(element.toString()), PARAM_TARGET_NAME);
+                .addParameter(ClassName.bestGuess(element.toString()), TARGET_NAME);
 
         // Generates something like the following:
-        // target.vm = ViewModelProviders.of(target).get(com.creations.scimitar.MyViewModel.class);
+        // target.vm = ViewModelProviders.of(target,factory).get(com.creations.scimitar.MyViewModel.class);
         for (AnnotatedElement el : viewModelBindings) {
-
             final AnnotatedElement factory = findViewModelFactory(el);
-            if (factory != null) {
-                builder.addStatement(BIND_STATEMENT_WITH_FACTORY,
-                        PARAM_TARGET_NAME,
-                        el.getName(),
-                        useAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
-                        PARAM_TARGET_NAME,
-                        PARAM_TARGET_NAME + DOT + factory.getName(),
-                        el.getElement().asType() + CLASS_SUFFIX
-                );
-            } else {
-                builder.addStatement(BIND_STATEMENT,
-                        PARAM_TARGET_NAME,
-                        el.getName(),
-                        useAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
-                        PARAM_TARGET_NAME,
-                        el.getElement().asType() + CLASS_SUFFIX
-                );
-            }
+            builder.addStatement("$L.$L = $T.of($L,$L).get($L)",
+                    TARGET_NAME,
+                    el.getName(),
+                    useAndroidX ? VIEW_MODEL_PROVIDER_CLASS_ANDROID_X : VIEW_MODEL_PROVIDER_CLASS,
+                    TARGET_NAME,
+                    factory != null ? TARGET_NAME + DOT + factory.getName() : "null",
+                    el.getElement().asType() + CLASS_SUFFIX
+            );
         }
 
         createResourceObserversType().forEach((typeSpec) ->
                 builder.addStatement("$L.$L = $L",
-                        PARAM_TARGET_NAME,
+                        TARGET_NAME,
                         "usersObserver",
                         typeSpec
                 ));
@@ -144,7 +130,7 @@ public class BindingsSet {
                         buildMethod(
                                 ON_SUCCESS, ParameterSpec.builder(stateTypeParam, "data").build(),
                                 "$L.$L($N)",
-                                PARAM_TARGET_NAME,
+                                TARGET_NAME,
                                 methodsSet.success().getName(),
                                 "data"
                         ));
@@ -155,7 +141,7 @@ public class BindingsSet {
                         buildMethod(
                                 ON_ERROR, ParameterSpec.builder(THROWABLE_TYPE, "error").build(),
                                 "$L.$L($N)",
-                                PARAM_TARGET_NAME,
+                                TARGET_NAME,
                                 methodsSet.error().getName(),
                                 "error"
                         )
@@ -166,7 +152,7 @@ public class BindingsSet {
                 stateObserverBuilder.addMethod(
                         buildMethod(
                                 ON_LOADING, null, "$L.$L()",
-                                PARAM_TARGET_NAME, methodsSet.loading().getName()
+                                TARGET_NAME, methodsSet.loading().getName()
                         )
                 );
             }
@@ -179,9 +165,9 @@ public class BindingsSet {
     private AnnotatedElement findViewModelFactory(AnnotatedElement el) {
 
         // If there's one specified in the enclosing class use it.
-        final List<AnnotatedElement> factory = factoryBindings.get(el.getEnclosingElement());
-        if (factory != null && !factory.isEmpty()) {
-            return factory.get(0);
+        Set<AnnotatedElement> factories = factoryBindings.get(el.getEnclosingElement());
+        if (factories != null && !factories.isEmpty()) {
+            return factories.iterator().next(); // Use the first in list
         }
 
         // Traverse class hierarchy to look for a @ViewModelFactory annotated field with "useAsDefault"
@@ -191,7 +177,7 @@ public class BindingsSet {
     // Traverse class hierarchy to look for a @ViewModelFactory annotated field with "useAsDefault = true"
     private AnnotatedElement findParentFactory(
             TypeElement el,
-            Map<TypeElement, List<AnnotatedElement>> factoryBindings) {
+            Map<TypeElement, Set<AnnotatedElement>> factoryBindings) {
 
         TypeMirror typeMirror = el.getSuperclass();
         if (typeMirror.getKind() == TypeKind.NONE) {
@@ -199,7 +185,7 @@ public class BindingsSet {
         }
 
         TypeElement parentType = (TypeElement) ((DeclaredType) typeMirror).asElement();
-        List<AnnotatedElement> parentFactories = factoryBindings.get(parentType);
+        Set<AnnotatedElement> parentFactories = factoryBindings.get(parentType);
         if (parentFactories != null) {
             for (AnnotatedElement parentFactory : parentFactories) {
                 if (((FactoryAnnotatedElement) parentFactory).useAsDefault())

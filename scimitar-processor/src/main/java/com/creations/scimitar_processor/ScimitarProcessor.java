@@ -141,7 +141,7 @@ public class ScimitarProcessor extends AbstractProcessor {
         }
 
         // Parse @ViewModelFactory annotated fields
-        final Map<TypeElement, List<AnnotatedElement>> factoriesMap = new HashMap<>();
+        final Map<TypeElement, Set<AnnotatedElement>> factoriesMap = new HashMap<>();
         fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(ViewModelFactory.class));
         for (VariableElement field : fields) {
             parseViewModelFactory(field, factoriesMap);
@@ -172,12 +172,14 @@ public class ScimitarProcessor extends AbstractProcessor {
             parseOnLoadingMethod(method, bindingsMap);
         }
 
+        print(bindingsMap, factoriesMap);
+
         // Parse superclasses recursively
         for (TypeElement el : bindingsMap.keySet()) {
             findParent(el, bindingsMap.get(el).getViewModelBindings(), bindingsMap);
         }
 
-        warning("\nBindings map: " + prettyPrint(bindingsMap));
+        print(bindingsMap, factoriesMap);
 
         // Generate classes
         generateClasses(bindingsMap);
@@ -197,7 +199,7 @@ public class ScimitarProcessor extends AbstractProcessor {
         }
     }
 
-    private void parseViewModelFactory(VariableElement field, Map<TypeElement, List<AnnotatedElement>> factoriesMap) {
+    private void parseViewModelFactory(VariableElement field, Map<TypeElement, Set<AnnotatedElement>> factoriesMap) {
         final TypeMirror factoryType = mElements.getTypeElement(
                 useAndroidX ? VIEW_MODEL_FACTORY_ANDROID_X : VIEW_MODEL_FACTORY
         ).asType();
@@ -206,7 +208,7 @@ public class ScimitarProcessor extends AbstractProcessor {
 
             final AnnotatedElement el = new FactoryAnnotatedElement(field);
             if (!factoriesMap.containsKey(el.getEnclosingElement())) {
-                factoriesMap.put(el.getEnclosingElement(), new ArrayList<>());
+                factoriesMap.put(el.getEnclosingElement(), new HashSet<>());
             }
 
             factoriesMap.get(el.getEnclosingElement()).add(el);
@@ -372,7 +374,7 @@ public class ScimitarProcessor extends AbstractProcessor {
         return true;
     }
 
-    private List<AnnotatedElement> findResourceObserversForId(List<AnnotatedElement> resObservers, String id) {
+    private List<AnnotatedElement> findResourceObserversForId(Set<AnnotatedElement> resObservers, String id) {
         if (resObservers == null) {
             return new ArrayList<>();
         }
@@ -451,7 +453,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     }
 
     private void findParent(TypeElement type,
-                            List<AnnotatedElement> elements,
+                            Set<AnnotatedElement> elements,
                             Map<TypeElement, BindingsSet> bindingsMap) {
 
         TypeMirror typeMirror = type.getSuperclass();
@@ -460,7 +462,7 @@ public class ScimitarProcessor extends AbstractProcessor {
         }
 
         TypeElement parentType = (TypeElement) ((DeclaredType) typeMirror).asElement();
-        List<AnnotatedElement> parentElements = bindingsMap.containsKey(parentType)
+        Set<AnnotatedElement> parentElements = bindingsMap.containsKey(parentType)
                 ? bindingsMap.get(parentType).getViewModelBindings()
                 : null;
 
@@ -507,40 +509,34 @@ public class ScimitarProcessor extends AbstractProcessor {
         return modifiers.contains(Modifier.PRIVATE) || modifiers.contains(Modifier.STATIC);
     }
 
-    private <K, V> String prettyPrint(Map<K, V> map) {
-        return new PrettyPrintingMap<>(map).toString();
-    }
+    private void print(Map<TypeElement, BindingsSet> bindingsMap,
+                       Map<TypeElement, Set<AnnotatedElement>> factoriesMap) {
 
-    public static class PrettyPrintingMap<K, V> {
-        private Map<K, V> map;
+        StringBuilder sb = new StringBuilder();
+        bindingsMap.forEach((typeElement, bindingsSet) -> {
 
-        PrettyPrintingMap(Map<K, V> map) {
-            this.map = map;
-        }
+            sb.append("Type: ").append(typeElement.toString()).append("\n");
 
-        private <A> String printCol(Collection<A> c) {
-            StringBuilder sb = new StringBuilder();
-            c.forEach(o -> sb.append("\n").append(o.toString()));
-            return sb.toString();
-        }
+            sb.append("--- View Models: \n");
+            bindingsSet.getViewModelBindings().forEach(el -> sb.append("----- View Model: ").append(el.toString()).append("\n"));
 
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
-            Iterator<Map.Entry<K, V>> iter = map.entrySet().iterator();
-            while (iter.hasNext()) {
-                Map.Entry<K, V> entry = iter.next();
-                sb.append(entry.getKey());
-                sb.append('=');
-                if (entry.getValue() instanceof Collection) {
-                    sb.append("   ").append(printCol((Collection) entry.getValue()));
-                } else {
-                    sb.append(entry.getValue());
-                }
-                if (iter.hasNext()) {
-                    sb.append('\n');
-                }
-            }
-            return sb.toString();
-        }
+            sb.append("--- Resource observers: \n");
+            bindingsSet.getObserverBindings().forEach(el -> sb.append("----- Resource observer: ").append(el.toString()).append("\n"));
+
+            sb.append("--- Annotated Methods: \n");
+            bindingsSet.getMethodBindings().forEach((s, methodsSet) -> {
+                sb.append("----- Id: ").append(s).append("\n");
+                sb.append("------- Methods: ").append(methodsSet).append("\n");
+            });
+
+        });
+
+        sb.append("--- Factories: \n");
+        factoriesMap.forEach((typeElement1, el) -> {
+            sb.append("Type: ").append(typeElement1.toString()).append("\n");
+            el.forEach(f -> sb.append("--- Factory: ").append(f.toString()).append("\n"));
+        });
+
+        warning(sb.append("\n").toString());
     }
 }

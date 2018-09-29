@@ -1,5 +1,7 @@
 package com.creations.scimitar_processor.elements;
 
+import java.util.Objects;
+
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
@@ -30,5 +32,18 @@ public abstract class AnnotatedElement {
         return "AnnotatedElement{" +
                 "element=" + element +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AnnotatedElement that = (AnnotatedElement) o;
+        return Objects.equals(element, that.element);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(element);
     }
 }
