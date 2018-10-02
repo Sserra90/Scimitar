@@ -1,6 +1,6 @@
 # Scimitar IN-DEVELOPMENT
 
-Please check https://olx-group-tech-lisbon.gitbook.io/scimitar/~/drafts/-LNpS1ieXmX_pdDVHywm/primary/ for full documentation
+Please check https://sserra.gitbook.io/scimitar/ for full documentation
 
 # Motivation
 Scimitar is a small library that leverages annotation processor to simplify ViewModel and ViewModelFactory injection to avoid boilerplate code every time a new view model is needed. Also simplifies asynchronous code state handling.
