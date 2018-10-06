@@ -444,9 +444,11 @@ public class ScimitarProcessor extends AbstractProcessor {
     // Verify enclosing type is valid
     private boolean isEnclosingTypeValid(Element element) {
         for (String allowed : allowedEnclosingTypes) {
-            final TypeMirror allowedType = mElements.getTypeElement(allowed).asType();
-            if (allowedType != null && isAssignableTo(element.getEnclosingElement().asType(), allowedType)) {
-                return true;
+            final TypeElement typeElement = mElements.getTypeElement(allowed);
+            if (typeElement != null) {
+                if (isAssignableTo(element.getEnclosingElement().asType(), typeElement.asType())) {
+                    return true;
+                }
             }
         }
         return false;
