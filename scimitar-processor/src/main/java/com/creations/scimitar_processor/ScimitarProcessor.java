@@ -61,6 +61,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     private static final String SCIMITAR_SUFFIX = "$$Scimitar";
     private static final String ACTIVITY_TYPE = "android.support.v4.app.FragmentActivity";
     private static final String ACTIVITY_TYPE_ANDROID_X = "androidx.fragment.app.FragmentActivity";
+    private static final String FRAGMENT_TYPE_ANDROID_X = "androidx.fragment.app";
     private static final String FRAGMENT_TYPE = "android.app.Fragment";
     private static final String FRAGMENT_SUPPORT_TYPE = " android.support.v4.app.Fragment";
 
@@ -101,9 +102,14 @@ public class ScimitarProcessor extends AbstractProcessor {
         useAndroidX = hasAndroidX(mElements);
 
         warning("Using androidX: " + useAndroidX);
-        allowedEnclosingTypes.add(useAndroidX ? ACTIVITY_TYPE_ANDROID_X : ACTIVITY_TYPE);
+        allowedEnclosingTypes.add(ACTIVITY_TYPE);
         allowedEnclosingTypes.add(FRAGMENT_TYPE);
         allowedEnclosingTypes.add(FRAGMENT_SUPPORT_TYPE);
+
+        if (useAndroidX) {
+            allowedEnclosingTypes.add(FRAGMENT_TYPE_ANDROID_X);
+            allowedEnclosingTypes.add(ACTIVITY_TYPE_ANDROID_X);
+        }
     }
 
     /**
@@ -439,7 +445,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     private boolean isEnclosingTypeValid(Element element) {
         for (String allowed : allowedEnclosingTypes) {
             final TypeMirror allowedType = mElements.getTypeElement(allowed).asType();
-            if (isAssignableTo(element.getEnclosingElement().asType(), allowedType)) {
+            if (allowedType != null && isAssignableTo(element.getEnclosingElement().asType(), allowedType)) {
                 return true;
             }
         }
