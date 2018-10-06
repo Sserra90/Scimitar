@@ -50,4 +50,21 @@ public class Scimitar {
         }
     }
 
+    public static void bind(androidx.fragment.app.Fragment target) {
+        try {
+            Class<?> c = Class.forName(target.getClass().getCanonicalName() + SCIMITAR_SUFFIX);
+            c.getDeclaredConstructor(target.getClass()).newInstance(target);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

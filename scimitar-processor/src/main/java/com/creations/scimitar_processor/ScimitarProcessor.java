@@ -61,7 +61,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     private static final String SCIMITAR_SUFFIX = "$$Scimitar";
     private static final String ACTIVITY_TYPE = "android.support.v4.app.FragmentActivity";
     private static final String ACTIVITY_TYPE_ANDROID_X = "androidx.fragment.app.FragmentActivity";
-    private static final String FRAGMENT_TYPE_ANDROID_X = "androidx.fragment.app";
+    private static final String FRAGMENT_TYPE_ANDROID_X = "androidx.fragment.app.Fragment";
     private static final String FRAGMENT_TYPE = "android.app.Fragment";
     private static final String FRAGMENT_SUPPORT_TYPE = " android.support.v4.app.Fragment";
 
@@ -193,6 +193,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     }
 
     private void parseBindViewModel(VariableElement field, Map<TypeElement, BindingsSet> bindingsMap) {
+        warning("\nParse view model: " + field);
         if (checkFieldAccessible(BindViewModel.class, field)) {
 
             final AnnotatedElement el = new ViewModelAnnotatedElement(field);
@@ -211,6 +212,8 @@ public class ScimitarProcessor extends AbstractProcessor {
     }
 
     private void parseViewModelFactory(VariableElement field, Map<TypeElement, Set<AnnotatedElement>> factoriesMap) {
+        warning("\nParse view model factory: " + field);
+
         final TypeMirror factoryType = mElements.getTypeElement(
                 useAndroidX ? VIEW_MODEL_FACTORY_ANDROID_X : VIEW_MODEL_FACTORY
         ).asType();
@@ -227,6 +230,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     }
 
     private void parseResourceObserver(VariableElement field, Map<TypeElement, BindingsSet> bindingsMap) {
+        warning("\nParse resource observer: " + field);
         if (checkFieldAccessible(ResourceObserver.class, field)) {
             final ResourceAnnotatedElement el = new ResourceAnnotatedElement(field);
 
@@ -434,7 +438,8 @@ public class ScimitarProcessor extends AbstractProcessor {
 
         // Check enclosing type
         if (!isEnclosingTypeValid(element)) {
-            error("Enclosing element is not valid. Should be one of: " + allowedEnclosingTypes);
+            error("Enclosing element is not valid. Got: " + element.getEnclosingElement()
+                    + ". Should be one of: " + allowedEnclosingTypes);
             isValid = false;
         }
 
