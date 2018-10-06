@@ -58,6 +58,7 @@ class ThirdActivity : SecondActivity() {
         Log.d(TAG, "Show loading")
     }
 
+
     @OnSuccess(id = "repos")
     fun renderRepos(repos: List<Repo>) {
         Log.d(TAG, "Show repo: $repos")

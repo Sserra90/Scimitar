@@ -3,9 +3,6 @@ package com.creations.scimitar_runtime.state;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.Observer;
 
-/**
- * @author Sérgio Serra
- */
 public abstract class StateObserver<D> implements Observer<Resource<D>> {
 
     public void onSuccess(D data){}

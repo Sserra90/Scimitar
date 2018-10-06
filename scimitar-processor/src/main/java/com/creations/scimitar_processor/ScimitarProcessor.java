@@ -62,6 +62,8 @@ public class ScimitarProcessor extends AbstractProcessor {
     private static final String ACTIVITY_TYPE = "android.support.v4.app.FragmentActivity";
     private static final String ACTIVITY_TYPE_ANDROID_X = "androidx.fragment.app.FragmentActivity";
     private static final String FRAGMENT_TYPE = "android.app.Fragment";
+    private static final String FRAGMENT_SUPPORT_TYPE = " android.support.v4.app.Fragment";
+
     private static final String VIEW_MODEL_FACTORY_ANDROID_X = "androidx.lifecycle.ViewModelProvider.Factory";
     private static final String VIEW_MODEL_FACTORY = "android.arch.lifecycle.ViewModelProvider.Factory";
 
@@ -101,6 +103,7 @@ public class ScimitarProcessor extends AbstractProcessor {
         warning("Using androidX: " + useAndroidX);
         allowedEnclosingTypes.add(useAndroidX ? ACTIVITY_TYPE_ANDROID_X : ACTIVITY_TYPE);
         allowedEnclosingTypes.add(FRAGMENT_TYPE);
+        allowedEnclosingTypes.add(FRAGMENT_SUPPORT_TYPE);
     }
 
     /**
