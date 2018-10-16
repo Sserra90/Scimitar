@@ -52,9 +52,6 @@ import javax.tools.Diagnostic;
 import static javax.lang.model.element.ElementKind.CLASS;
 import static javax.lang.model.element.Modifier.PUBLIC;
 
-/**
- * Scimitar custom annotation processor
- */
 @AutoService(Processor.class)
 public class ScimitarProcessor extends AbstractProcessor {
 
@@ -89,7 +86,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     }
 
     private void warning(String msg) {
-        mMessager.printMessage(Diagnostic.Kind.WARNING, msg);
+        mMessager.printMessage(Diagnostic.Kind.NOTE, msg);
     }
 
     @Override

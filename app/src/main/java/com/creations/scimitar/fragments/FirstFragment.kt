@@ -3,6 +3,7 @@ package com.creations.scimitar.fragments
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import com.creations.scimitar.activities.ThirdActivity
 import com.creations.scimitar.entities.User
 import com.creations.scimitar.vm.MyViewModel
@@ -14,6 +15,7 @@ import com.creations.scimitar_annotations.state.OnLoading
 import com.creations.scimitar_annotations.state.OnSuccess
 import com.creations.scimitar_annotations.state.ResourceObserver
 import com.creations.scimitar_runtime.Scimitar
+import com.creations.scimitar_runtime.state.Resource
 import com.creations.scimitar_runtime.state.StateObserver
 
 

@@ -175,7 +175,6 @@ public class BindingsSet {
     }
 
     private ParameterizedTypeName buildParameterizedType(List<ClassName> classNames) {
-        mMessager.printMessage(Diagnostic.Kind.WARNING, "Build parameterized type for: " + classNames);
         return ParameterizedTypeName.get(
                 classNames.get(0),
                 classNames.size() > 2
