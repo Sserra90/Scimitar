@@ -1,4 +1,6 @@
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
 apply plugin: 'com.github.dcendents.android-maven'
 
 // Jitpack group
@@ -15,6 +17,10 @@ android {
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
+    }
+
+    dataBinding {
+        enabled = true
     }
 
     buildTypes {
@@ -35,9 +41,10 @@ ext {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+
     api project(":scimitar-annotations")
     implementation "androidx.appcompat:appcompat:$appCompat"
     implementation "androidx.lifecycle:lifecycle-livedata-core:$livedata"
-
     testImplementation "junit:junit:$junit"
 }

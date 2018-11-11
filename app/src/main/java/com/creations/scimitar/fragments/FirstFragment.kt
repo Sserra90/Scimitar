@@ -20,8 +20,7 @@ import com.creations.scimitar_runtime.state.StateObserver
 
 
 /**
- * @author Sérgio Serra on 06/10/2018.
- * Criations
+ * @author Sérgio Serra.
  * sergioserra99@gmail.com
  */
 open class FirstFragment : Fragment() {

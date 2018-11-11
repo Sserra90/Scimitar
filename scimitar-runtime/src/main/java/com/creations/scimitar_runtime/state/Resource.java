@@ -10,9 +10,6 @@ import static com.creations.scimitar_runtime.state.Resource.Status.ERROR;
 import static com.creations.scimitar_runtime.state.Resource.Status.LOADING;
 import static com.creations.scimitar_runtime.state.Resource.Status.SUCCESS;
 
-/**
- * @author Sérgio Serra on 23/09/2018.
- */
 public final class Resource<T> {
 
     public enum Status {
