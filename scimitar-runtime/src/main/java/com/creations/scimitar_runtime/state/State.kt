@@ -8,16 +8,7 @@ sealed class Status {
 }
 
 data class StateError(val error: Throwable)
-data class State<T>(val data: T, val status: Status = Status.Loading, val error: StateError? = null) {
-    val loading: Boolean
-        get() = status == Status.Loading
-    val hasError: Boolean
-        get() = status == Status.Error && error != null
-    val noResults: Boolean
-        get() = status == Status.NoResults
-    val success: Boolean
-        get() = status == Status.Success
-}
+data class State<T>(val data: T, val status: Status = Status.Loading, val error: StateError? = null)
 
 /*
 class Resource<T> private constructor(@param:NonNull @field:NonNull

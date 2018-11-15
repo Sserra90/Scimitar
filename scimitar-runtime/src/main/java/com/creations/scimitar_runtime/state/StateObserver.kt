@@ -2,6 +2,7 @@ package com.creations.scimitar_runtime.state
 
 import androidx.annotation.Nullable
 import androidx.lifecycle.Observer
+import com.creations.scimitar_runtime.state.Status.*
 
 abstract class StateObserver<D> : Observer<State<D>> {
 
@@ -12,11 +13,11 @@ abstract class StateObserver<D> : Observer<State<D>> {
 
     override fun onChanged(@Nullable state: State<D>?) {
         if (state != null) {
-            when {
-                state.success -> onSuccess(state.data)
-                state.hasError -> onError(state.error!!)
-                state.noResults -> onNoResults()
-                state.loading -> onLoading()
+            when (state.status) {
+                Success -> onSuccess(state.data)
+                Error -> onError(state.error!!)
+                NoResults -> onNoResults()
+                Loading -> onLoading()
             }
         }
     }
