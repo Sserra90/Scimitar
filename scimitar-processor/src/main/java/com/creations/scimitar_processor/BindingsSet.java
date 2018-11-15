@@ -42,6 +42,7 @@ public class BindingsSet {
     private static final String ON_LOADING = "onLoading";
     private static final String ON_SUCCESS = "onSuccess";
     private static final String ON_ERROR = "onError";
+    private static final String ON_NORESULTS = "onNoResults";
 
     private static final ClassName STATE_OBSERVER_TYPE =
             ClassName.get("com.creations.scimitar_runtime.state", "StateObserver");
@@ -224,6 +225,15 @@ public class BindingsSet {
                     buildMethod(
                             ON_LOADING, null, "$L.$L()",
                             TARGET_NAME, methodsSet.loading().getName()
+                    )
+            );
+        }
+
+        if (methodsSet.noResults() != null) {
+            stateObserverBuilder.addMethod(
+                    buildMethod(
+                            ON_NORESULTS, null, "$L.$L()",
+                            TARGET_NAME, methodsSet.noResults().getName()
                     )
             );
         }

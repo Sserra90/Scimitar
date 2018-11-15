@@ -8,7 +8,7 @@ import com.creations.scimitar_processor.elements.methods.MethodElement;
  */
 public class MethodsSet {
 
-    private AnnotatedElement onSuccess, onError, onLoading;
+    private AnnotatedElement onSuccess, onError, onLoading, onNoResults;
 
     public AnnotatedElement success() {
         return onSuccess;
@@ -22,6 +22,10 @@ public class MethodsSet {
         return onLoading;
     }
 
+    public AnnotatedElement noResults() {
+        return onNoResults;
+    }
+
     public void addMethod(MethodElement el) {
         switch (el.type()) {
             case ERROR:
@@ -33,6 +37,9 @@ public class MethodsSet {
             case SUCCESS:
                 onSuccess = el;
                 break;
+            case NO_RESULTS:
+                onNoResults = el;
+                break;
         }
     }
 
@@ -42,6 +49,7 @@ public class MethodsSet {
                 "onSuccess=" + onSuccess +
                 ", onError=" + onError +
                 ", onLoading=" + onLoading +
+                ", onNoResults=" + onNoResults +
                 '}';
     }
 }

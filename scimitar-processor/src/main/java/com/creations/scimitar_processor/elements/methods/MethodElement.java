@@ -1,6 +1,7 @@
 package com.creations.scimitar_processor.elements.methods;
 
 import com.creations.scimitar_annotations.OnLoading;
+import com.creations.scimitar_annotations.OnNoResults;
 import com.creations.scimitar_annotations.OnSuccess;
 import com.creations.scimitar_processor.elements.AnnotatedElement;
 
@@ -9,13 +10,10 @@ import java.util.Objects;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 
-/**
- * @author Sérgio Serra on 23/09/2018.
- */
 public abstract class MethodElement extends AnnotatedElement {
 
     public enum Type {
-        ERROR, SUCCESS, LOADING
+        ERROR, SUCCESS, LOADING, NO_RESULTS
     }
 
     private Type type;
@@ -39,6 +37,8 @@ public abstract class MethodElement extends AnnotatedElement {
             return new LoadingMethod(el);
         } else if (el.getAnnotation(OnSuccess.class) != null) {
             return new SuccessMethod(el);
+        } else if (el.getAnnotation(OnNoResults.class) != null) {
+            return new NoResultsMethod(el);
         } else {
             return new ErrorMethod(el);
         }

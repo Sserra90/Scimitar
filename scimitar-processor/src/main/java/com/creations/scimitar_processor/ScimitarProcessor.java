@@ -1,6 +1,7 @@
 package com.creations.scimitar_processor;
 
 import com.creations.scimitar_annotations.BindViewModel;
+import com.creations.scimitar_annotations.OnNoResults;
 import com.creations.scimitar_annotations.ViewModelFactory;
 import com.creations.scimitar_annotations.OnError;
 import com.creations.scimitar_annotations.OnLoading;
@@ -176,6 +177,12 @@ public class ScimitarProcessor extends AbstractProcessor {
             parseOnLoadingMethod(method, bindingsMap);
         }
 
+        // Parse @OnNoResults annotated methods
+        methods = ElementFilter.methodsIn(env.getElementsAnnotatedWith(OnNoResults.class));
+        for (ExecutableElement method : methods) {
+            parseOnNoResultsMethod(method, bindingsMap);
+        }
+
         // Parse superclasses recursively
         for (TypeElement el : bindingsMap.keySet()) {
             findParent(el, bindingsMap.get(el).getViewModelBindings(), bindingsMap);
@@ -334,6 +341,26 @@ public class ScimitarProcessor extends AbstractProcessor {
             if (!method.getParameters().isEmpty()) {
                 error(String.format(Locale.US,
                         "@OnLoading method %s takes no parameters. Got %d parameters.",
+                        method, paramsNr)
+                );
+                return;
+            }
+
+            addMethod(MethodElement.create(method), bindingsMap);
+        }
+    }
+
+    private void parseOnNoResultsMethod(ExecutableElement method, Map<TypeElement, BindingsSet> bindingsMap) {
+
+        warning("\nParse onNoResults method: " + method);
+
+        if (initialValidation(method, bindingsMap)) {
+
+            // Check parameter is valid
+            final int paramsNr = method.getParameters().size();
+            if (!method.getParameters().isEmpty()) {
+                error(String.format(Locale.US,
+                        "@OnNoResults method %s takes no parameters. Got %d parameters.",
                         method, paramsNr)
                 );
                 return;
