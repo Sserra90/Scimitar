@@ -8,7 +8,6 @@ import com.creations.scimitar.R
 import com.creations.scimitar.vm.ScimitarViewModelFactory
 import com.creations.scimitar_annotations.BindViewModel
 import com.creations.scimitar_annotations.ViewModelFactory
-import com.creations.scimitar_runtime.Scimitar
 import com.creations.scimitar_runtime.scimitar
 
 open class FirstActivity : AppCompatActivity() {
@@ -26,7 +25,6 @@ open class FirstActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         scimitar()
 
         Log.d(TAG, "Vm injected: $vm")
