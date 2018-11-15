@@ -1,8 +1,15 @@
 package com.creations.scimitar_runtime
 
+import androidx.fragment.app.FragmentActivity
 import java.lang.reflect.InvocationTargetException
 
-import androidx.fragment.app.FragmentActivity
+fun FragmentActivity.scimitar() {
+    Scimitar.bind(this)
+}
+
+fun androidx.fragment.app.Fragment.scimitar() {
+    Scimitar.bind(this)
+}
 
 object Scimitar {
 

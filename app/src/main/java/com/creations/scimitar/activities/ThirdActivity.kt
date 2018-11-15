@@ -13,6 +13,7 @@ import com.creations.scimitar_annotations.OnError
 import com.creations.scimitar_annotations.OnLoading
 import com.creations.scimitar_annotations.OnSuccess
 import com.creations.scimitar_annotations.ResourceObserver
+import com.creations.scimitar_runtime.state.StateError
 import com.creations.scimitar_runtime.state.StateObserver
 
 class ThirdActivity : SecondActivity() {
@@ -49,15 +50,14 @@ class ThirdActivity : SecondActivity() {
     }
 
     @OnError(id = "users")
-    fun renderError(t: Throwable) {
-        Log.d(TAG, "Show error")
+    fun renderError(error: StateError) {
+        Log.d(TAG, "Show error $error")
     }
 
     @OnLoading(id = "users")
     fun showLoading() {
         Log.d(TAG, "Show loading")
     }
-
 
     @OnSuccess(id = "repos")
     fun renderRepos(repos: List<Repo>) {

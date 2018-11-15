@@ -24,7 +24,6 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
-import javax.tools.Diagnostic;
 
 import static javax.lang.model.element.Modifier.PUBLIC;
 
@@ -46,7 +45,8 @@ public class BindingsSet {
 
     private static final ClassName STATE_OBSERVER_TYPE =
             ClassName.get("com.creations.scimitar_runtime.state", "StateObserver");
-    private static final ClassName THROWABLE_TYPE = ClassName.get("java.lang", "Throwable");
+    private static final ClassName THROWABLE_TYPE =
+            ClassName.get("com.creations.scimitar_runtime.state", "StateError");
 
     private boolean mUseAndroidX;
     private TypeElement mElement;
@@ -146,7 +146,7 @@ public class BindingsSet {
     private TypeName parseType(TypeMirror type) {
 
         // If it's not parameterized use bestGuess to return the type
-        if (!isParameterized(type)){
+        if (!isParameterized(type)) {
             return ClassName.bestGuess(type.toString());
         }
 

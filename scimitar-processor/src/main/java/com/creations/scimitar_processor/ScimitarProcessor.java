@@ -1,12 +1,12 @@
 package com.creations.scimitar_processor;
 
 import com.creations.scimitar_annotations.BindViewModel;
-import com.creations.scimitar_annotations.OnNoResults;
-import com.creations.scimitar_annotations.ViewModelFactory;
 import com.creations.scimitar_annotations.OnError;
 import com.creations.scimitar_annotations.OnLoading;
+import com.creations.scimitar_annotations.OnNoResults;
 import com.creations.scimitar_annotations.OnSuccess;
 import com.creations.scimitar_annotations.ResourceObserver;
+import com.creations.scimitar_annotations.ViewModelFactory;
 import com.creations.scimitar_processor.elements.AnnotatedElement;
 import com.creations.scimitar_processor.elements.FactoryAnnotatedElement;
 import com.creations.scimitar_processor.elements.ResourceAnnotatedElement;
@@ -66,8 +66,9 @@ public class ScimitarProcessor extends AbstractProcessor {
     private static final String VIEW_MODEL_FACTORY_ANDROID_X = "androidx.lifecycle.ViewModelProvider.Factory";
     private static final String VIEW_MODEL_FACTORY = "android.arch.lifecycle.ViewModelProvider.Factory";
 
-    private static final String THROWABLE = "java.lang.Throwable";
-    private static final ClassName THROWABLE_TYPE = ClassName.get("java.lang", "Throwable");
+    private static final String THROWABLE = "com.creations.scimitar_runtime.state.StateError";
+    private static final ClassName THROWABLE_TYPE =
+            ClassName.get("com.creations.scimitar_runtime.state", "StateError");
 
     private static final Set<String> allowedEnclosingTypes = new HashSet<>();
 
