@@ -11,7 +11,7 @@ fun androidx.fragment.app.Fragment.scimitar() {
     Scimitar.bind(this)
 }
 
-object Scimitar {
+private object Scimitar {
 
     private const val SCIMITAR_SUFFIX = "$\$Scimitar"
 

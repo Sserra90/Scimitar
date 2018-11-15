@@ -8,10 +8,9 @@ import com.creations.scimitar.entities.User
 import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.vm.ScimitarViewModelFactory
 import com.creations.scimitar_annotations.*
-import com.creations.scimitar_runtime.Scimitar
+import com.creations.scimitar_runtime.scimitar
 import com.creations.scimitar_runtime.state.StateError
 import com.creations.scimitar_runtime.state.StateObserver
-
 
 /**
  * @author Sérgio Serra on 06/10/2018.
@@ -21,7 +20,7 @@ import com.creations.scimitar_runtime.state.StateObserver
 open class FirstFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Scimitar.bind(this)
+        scimitar()
     }
 }
 
