@@ -1,6 +1,6 @@
 package com.creations.scimitar_processor.elements.methods;
 
-import com.creations.scimitar_annotations.state.OnError;
+import com.creations.scimitar_annotations.OnError;
 
 import javax.lang.model.element.Element;
 

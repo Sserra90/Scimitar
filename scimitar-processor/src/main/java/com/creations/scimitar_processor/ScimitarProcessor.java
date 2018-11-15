@@ -2,10 +2,10 @@ package com.creations.scimitar_processor;
 
 import com.creations.scimitar_annotations.BindViewModel;
 import com.creations.scimitar_annotations.ViewModelFactory;
-import com.creations.scimitar_annotations.state.OnError;
-import com.creations.scimitar_annotations.state.OnLoading;
-import com.creations.scimitar_annotations.state.OnSuccess;
-import com.creations.scimitar_annotations.state.ResourceObserver;
+import com.creations.scimitar_annotations.OnError;
+import com.creations.scimitar_annotations.OnLoading;
+import com.creations.scimitar_annotations.OnSuccess;
+import com.creations.scimitar_annotations.ResourceObserver;
 import com.creations.scimitar_processor.elements.AnnotatedElement;
 import com.creations.scimitar_processor.elements.FactoryAnnotatedElement;
 import com.creations.scimitar_processor.elements.ResourceAnnotatedElement;
