@@ -20,21 +20,18 @@ class StateLayout @JvmOverloads constructor(
     init {
         inflate(R.layout.async_layout)
 
-        attrs?.apply {
-            context.obtainStyledAttributes(this, R.styleable.StateLayout).apply {
-                getInt(R.styleable.StateLayout_state, 0).apply {
-                    state = when (this) {
-                        0 -> State()
-                        1 -> State(Status.Success)
-                        3 -> State(Status.Error)
-                        4 -> State(Status.NoResults)
-                        else -> State()
-                    }
+        readAttrs(attrs) {
+            getInt(R.styleable.StateLayout_state, 0).apply {
+                state = when (this) {
+                    0 -> State()
+                    1 -> State(Status.Success)
+                    3 -> State(Status.Error)
+                    4 -> State(Status.NoResults)
+                    else -> State()
                 }
-                loadingSize = getDimensionPixelSize(R.styleable.StateLayout_loadingSize, 100.toPx)
-                animate = getBoolean(R.styleable.StateLayout_animate, true)
-                recycle()
             }
+            loadingSize = getDimensionPixelSize(R.styleable.StateLayout_loadingSize, 100.toPx)
+            animate = getBoolean(R.styleable.StateLayout_animate, true)
         }
 
         doOnPreDraw {

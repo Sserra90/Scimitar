@@ -1,6 +1,8 @@
 package com.creations.scimitar_runtime
 
 import android.content.res.Resources
+import android.content.res.TypedArray
+import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
@@ -46,4 +48,13 @@ inline fun <T : View> T.doOnPreDraw(crossinline action: (view: T) -> Unit) {
             return true
         }
     })
+}
+
+fun View.readAttrs(attrs: AttributeSet?, action: TypedArray.() -> Unit) {
+    attrs?.apply {
+        context.obtainStyledAttributes(this, R.styleable.StateLayout).apply {
+            action()
+            recycle()
+        }
+    }
 }
