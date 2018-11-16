@@ -82,8 +82,8 @@ class StateLayout @JvmOverloads constructor(
     private fun updateState() {
         when (state.status) {
             Status.Success -> {
-                loadingView.show()
-                hide(content, errorView, noResults)
+                content.show()
+                hide(loadingView, errorView, noResults)
             }
             Status.Error -> {
                 errorView.show()

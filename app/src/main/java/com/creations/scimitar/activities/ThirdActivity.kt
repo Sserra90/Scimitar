@@ -3,18 +3,17 @@ package com.creations.scimitar.activities
 import android.os.Bundle
 import android.util.Log
 import com.creations.scimitar.R
+import com.creations.scimitar.R.id.stateView
 import com.creations.scimitar.entities.Repo
 import com.creations.scimitar.entities.User
 import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.vm.ScimitarViewModelFactory
-import com.creations.scimitar_annotations.BindViewModel
-import com.creations.scimitar_annotations.ViewModelFactory
-import com.creations.scimitar_annotations.OnError
-import com.creations.scimitar_annotations.OnLoading
-import com.creations.scimitar_annotations.OnSuccess
-import com.creations.scimitar_annotations.ResourceObserver
+import com.creations.scimitar_annotations.*
+import com.creations.scimitar_runtime.state.State
 import com.creations.scimitar_runtime.state.StateError
 import com.creations.scimitar_runtime.state.StateObserver
+import com.creations.scimitar_runtime.state.Status
+import kotlinx.android.synthetic.main.activity_main.*
 
 class ThirdActivity : SecondActivity() {
 
@@ -47,16 +46,24 @@ class ThirdActivity : SecondActivity() {
     @OnSuccess(id = "users")
     fun renderUsers(user: User) {
         Log.d(TAG, "Render user: $user")
+        stateView.state = State(status = Status.Success)
     }
 
     @OnError(id = "users")
     fun renderError(error: StateError) {
         Log.d(TAG, "Show error $error")
+        stateView.state = State(status = Status.Error)
     }
 
     @OnLoading(id = "users")
     fun showLoading() {
         Log.d(TAG, "Show loading")
+    }
+
+    @OnNoResults(id = "users")
+    fun showNoResults() {
+        Log.d(TAG, "Show no results")
+        stateView.state = State(status = Status.NoResults)
     }
 
     @OnSuccess(id = "repos")
