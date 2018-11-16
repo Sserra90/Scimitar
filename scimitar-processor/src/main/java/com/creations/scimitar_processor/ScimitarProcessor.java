@@ -207,8 +207,9 @@ public class ScimitarProcessor extends AbstractProcessor {
                 bindingsMap.put(
                         el.getEnclosingElement(),
                         new BindingsSet(
-                                useAndroidX, mMessager,
-                                mTypeUtils, el.getEnclosingElement()
+                                useAndroidX,
+                                mTypeUtils,
+                                el.getEnclosingElement()
                         )
                 );
             }
@@ -243,8 +244,9 @@ public class ScimitarProcessor extends AbstractProcessor {
                 bindingsMap.put(
                         el.getEnclosingElement(),
                         new BindingsSet(
-                                useAndroidX, mMessager,
-                                mTypeUtils, el.getEnclosingElement()
+                                useAndroidX,
+                                mTypeUtils,
+                                el.getEnclosingElement()
                         )
                 );
             }

@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.processing.Messager;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
@@ -50,7 +49,6 @@ public class BindingsSet {
 
     private boolean mUseAndroidX;
     private TypeElement mElement;
-    private Messager mMessager;
     private Types mTypeUtils;
 
     private Map<TypeElement, Set<AnnotatedElement>> factoryBindings = new HashMap<>();
@@ -58,42 +56,41 @@ public class BindingsSet {
     private Set<AnnotatedElement> observerBindings = new HashSet<>();
     private Map<String, MethodsSet> methodBindings = new HashMap<>();
 
-    BindingsSet(boolean useAndroidX, Messager messager, Types typeUtils, TypeElement element) {
+    BindingsSet(boolean useAndroidX, Types typeUtils, TypeElement element) {
         mElement = element;
-        mMessager = messager;
         mTypeUtils = typeUtils;
         mUseAndroidX = useAndroidX;
     }
 
-    public void putFactoriesMap(Map<TypeElement, Set<AnnotatedElement>> bindings) {
+    void putFactoriesMap(Map<TypeElement, Set<AnnotatedElement>> bindings) {
         factoryBindings = bindings;
     }
 
-    public void addViewModelBinding(AnnotatedElement viewModelBinding) {
+    void addViewModelBinding(AnnotatedElement viewModelBinding) {
         viewModelBindings.add(viewModelBinding);
     }
 
-    public Set<AnnotatedElement> getViewModelBindings() {
+    Set<AnnotatedElement> getViewModelBindings() {
         return viewModelBindings;
     }
 
-    public void addObserverBinding(AnnotatedElement observerBinding) {
+    void addObserverBinding(AnnotatedElement observerBinding) {
         observerBindings.add(observerBinding);
     }
 
-    public Set<AnnotatedElement> getObserverBindings() {
+    Set<AnnotatedElement> getObserverBindings() {
         return observerBindings;
     }
 
-    public void setMethodBindings(Map<String, MethodsSet> methodBindings) {
+    void setMethodBindings(Map<String, MethodsSet> methodBindings) {
         this.methodBindings = methodBindings;
     }
 
-    public Map<String, MethodsSet> getMethodBindings() {
+    Map<String, MethodsSet> getMethodBindings() {
         return methodBindings;
     }
 
-    public MethodSpec makeItHappen() {
+    MethodSpec makeItHappen() {
         return createConstructor();
     }
 
