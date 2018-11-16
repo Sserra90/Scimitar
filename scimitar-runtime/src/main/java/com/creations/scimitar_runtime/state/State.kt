@@ -8,4 +8,4 @@ sealed class Status {
 }
 
 data class StateError(val error: Throwable)
-data class State<T>(val data: T, val status: Status = Status.Loading, val error: StateError? = null)
+data class State<T>(val data: T? = null, val status: Status = Status.Loading, val error: StateError? = null)

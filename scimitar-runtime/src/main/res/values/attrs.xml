@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="StateLayout">
+        <attr name="state" format="enum">
+            <enum name="loading" value="0" />
+            <enum name="success" value="1" />
+            <enum name="error" value="2" />
+            <enum name="noResults" value="3" />
+        </attr>
+        <attr name="loadingSize" format="dimension" />
+        <attr name="animate" format="boolean" />
+    </declare-styleable>
+
+</resources>

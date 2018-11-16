@@ -14,7 +14,7 @@ abstract class StateObserver<D> : Observer<State<D>> {
     override fun onChanged(@Nullable state: State<D>?) {
         if (state != null) {
             when (state.status) {
-                Success -> onSuccess(state.data)
+                Success -> onSuccess(state.data!!)
                 Error -> onError(state.error!!)
                 NoResults -> onNoResults()
                 Loading -> onLoading()
