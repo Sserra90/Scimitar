@@ -1,8 +1,8 @@
-package com.creations.scimitar_runtime.state
+package com.creations.runtime.state
 
 import androidx.annotation.Nullable
 import androidx.lifecycle.Observer
-import com.creations.scimitar_runtime.state.Status.*
+import com.creations.runtime.state.Status.*
 
 abstract class StateObserver<D> : Observer<State<D>> {
 

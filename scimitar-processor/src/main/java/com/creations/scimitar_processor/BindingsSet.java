@@ -43,9 +43,9 @@ public class BindingsSet {
     private static final String ON_NORESULTS = "onNoResults";
 
     private static final ClassName STATE_OBSERVER_TYPE =
-            ClassName.get("com.creations.scimitar_runtime.state", "StateObserver");
+            ClassName.get("com.creations.runtime.state", "StateObserver");
     private static final ClassName THROWABLE_TYPE =
-            ClassName.get("com.creations.scimitar_runtime.state", "StateError");
+            ClassName.get("com.creations.runtime.state", "StateError");
 
     private boolean mUseAndroidX;
     private TypeElement mElement;

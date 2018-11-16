@@ -1,4 +1,4 @@
-package com.creations.scimitar_runtime.views
+package com.creations.runtime.views
 
 import android.content.Context
 import android.util.AttributeSet
@@ -8,9 +8,9 @@ import android.widget.FrameLayout
 import androidx.databinding.BindingAdapter
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
-import com.creations.scimitar_runtime.*
-import com.creations.scimitar_runtime.state.State
-import com.creations.scimitar_runtime.state.Status
+import com.creations.runtime.*
+import com.creations.runtime.state.State
+import com.creations.runtime.state.Status
 import kotlinx.android.synthetic.main.async_layout.view.*
 
 class StateLayout @JvmOverloads constructor(
@@ -23,11 +23,11 @@ class StateLayout @JvmOverloads constructor(
         readAttrs(attrs) {
             getInt(R.styleable.StateLayout_state, 0).apply {
                 state = when (this) {
-                    0 -> State()
+                    0 -> State<Any>()
                     1 -> State(Status.Success)
                     3 -> State(Status.Error)
                     4 -> State(Status.NoResults)
-                    else -> State()
+                    else -> State<Any>()
                 }
             }
             loadingSize = getDimensionPixelSize(R.styleable.StateLayout_loadingSize, 100.toPx)
@@ -43,7 +43,7 @@ class StateLayout @JvmOverloads constructor(
     private var animate: Boolean = true
     private var mLayoutFinished: Boolean = false
 
-    var state: State<Any> = State(status = Status.Loading)
+    var state: State<*> = State<Any>(status = Status.Loading)
         set(value) {
 
             // Check if the state is the same.
@@ -106,15 +106,16 @@ private fun hide(vararg views: View) {
     views.forEach { it.hide() }
 }
 
+
 @BindingAdapter("state")
-fun StateLayout.setState(state: State<Any>) {
+fun <T> StateLayout.setState(state: State<T>) {
     this.state = state
 }
 
 @BindingAdapter("stateLive")
-fun StateLayout.setStateLive(stateLive: LiveData<State<Any>>?) {
+fun <T> StateLayout.setStateLive(stateLive: LiveData<State<T>>?) {
     stateLive?.apply {
-        val observer: Observer<State<Any>> = Observer { it ->
+        val observer: Observer<State<T>> = Observer { it ->
             it?.apply {
                 state = this
             }

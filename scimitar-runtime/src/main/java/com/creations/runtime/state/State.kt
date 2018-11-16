@@ -1,4 +1,4 @@
-package com.creations.scimitar_runtime.state
+package com.creations.runtime.state
 
 sealed class Status {
     object Success : Status()

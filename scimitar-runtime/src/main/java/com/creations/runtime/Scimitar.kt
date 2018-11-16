@@ -1,4 +1,4 @@
-package com.creations.scimitar_runtime
+package com.creations.runtime
 
 import androidx.fragment.app.FragmentActivity
 import java.lang.reflect.InvocationTargetException

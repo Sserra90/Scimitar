@@ -8,7 +8,7 @@ import com.creations.scimitar.R
 import com.creations.scimitar.vm.ScimitarViewModelFactory
 import com.creations.scimitar_annotations.BindViewModel
 import com.creations.scimitar_annotations.ViewModelFactory
-import com.creations.scimitar_runtime.scimitar
+import com.creations.runtime.scimitar
 
 open class FirstActivity : AppCompatActivity() {
 

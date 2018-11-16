@@ -1,4 +1,4 @@
-package com.creations.scimitar_runtime
+package com.creations.runtime
 
 import android.content.res.Resources
 import android.content.res.TypedArray

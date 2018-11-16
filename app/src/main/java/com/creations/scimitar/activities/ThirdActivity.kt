@@ -2,17 +2,18 @@ package com.creations.scimitar.activities
 
 import android.os.Bundle
 import android.util.Log
+import androidx.databinding.DataBindingUtil
 import com.creations.scimitar.R
-import com.creations.scimitar.R.id.stateView
+import com.creations.scimitar.databinding.ActivityMainBinding
 import com.creations.scimitar.entities.Repo
 import com.creations.scimitar.entities.User
 import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.vm.ScimitarViewModelFactory
 import com.creations.scimitar_annotations.*
-import com.creations.scimitar_runtime.state.State
-import com.creations.scimitar_runtime.state.StateError
-import com.creations.scimitar_runtime.state.StateObserver
-import com.creations.scimitar_runtime.state.Status
+import com.creations.runtime.state.State
+import com.creations.runtime.state.StateError
+import com.creations.runtime.state.StateObserver
+import com.creations.runtime.state.Status
 import kotlinx.android.synthetic.main.activity_main.*
 
 class ThirdActivity : SecondActivity() {
@@ -33,26 +34,31 @@ class ThirdActivity : SecondActivity() {
     @ResourceObserver(id = "repos")
     lateinit var reposObserver: StateObserver<List<Repo>>
 
+    private lateinit var db: ActivityMainBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         factory = ScimitarViewModelFactory()
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+
+        db = DataBindingUtil.setContentView(this,R.layout.activity_main)
+        db.setLifecycleOwner(this)
+        db.vm = vm
 
         Log.d(TAG, "Vm injected: $vm")
-        vm.liveData.observe(this, usersObserver)
+        //vm.liveData.observe(this, usersObserver)
         vm.getUsers()
     }
 
     @OnSuccess(id = "users")
     fun renderUsers(user: User) {
         Log.d(TAG, "Render user: $user")
-        stateView.state = State(status = Status.Success)
+        stateView.state = State<Any>(status = Status.Success)
     }
 
     @OnError(id = "users")
     fun renderError(error: StateError) {
         Log.d(TAG, "Show error $error")
-        stateView.state = State(status = Status.Error)
+        stateView.state = State<Any>(status = Status.Error)
     }
 
     @OnLoading(id = "users")
@@ -63,7 +69,7 @@ class ThirdActivity : SecondActivity() {
     @OnNoResults(id = "users")
     fun showNoResults() {
         Log.d(TAG, "Show no results")
-        stateView.state = State(status = Status.NoResults)
+        stateView.state = State<Any>(status = Status.NoResults)
     }
 
     @OnSuccess(id = "repos")

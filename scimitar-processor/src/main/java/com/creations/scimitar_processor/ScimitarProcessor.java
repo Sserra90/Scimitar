@@ -66,9 +66,9 @@ public class ScimitarProcessor extends AbstractProcessor {
     private static final String VIEW_MODEL_FACTORY_ANDROID_X = "androidx.lifecycle.ViewModelProvider.Factory";
     private static final String VIEW_MODEL_FACTORY = "android.arch.lifecycle.ViewModelProvider.Factory";
 
-    private static final String THROWABLE = "com.creations.scimitar_runtime.state.StateError";
+    private static final String THROWABLE = "com.creations.runtime.state.StateError";
     private static final ClassName THROWABLE_TYPE =
-            ClassName.get("com.creations.scimitar_runtime.state", "StateError");
+            ClassName.get("com.creations.runtime.state", "StateError");
 
     private static final Set<String> allowedEnclosingTypes = new HashSet<>();
 
