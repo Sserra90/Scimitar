@@ -17,7 +17,25 @@ class StateLayout @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
+    private var animate: Boolean = true
+    private var mLayoutFinished: Boolean = false
+
+    private val mSuccessTag = context.getString(R.string.state_success)
+    private val mErrorTag = context.getString(R.string.state_error)
+    private val mLoadingTag = context.getString(R.string.state_loading)
+    private val mNoResultsTag = context.getString(R.string.state_noResults)
+    private val mTags: Set<String> = setOf(mSuccessTag, mErrorTag, mLoadingTag, mNoResultsTag)
+
+    private var mErrorView: View? = null
+    private var mLoadingView: View? = null
+    private var mNoResultsView: View? = null
+    private var mContentView: View? = null
+
+    var loadingSize: Int = 100.toPx
+    var onDetachFromWindow: () -> Unit? = {}
+
     init {
+
         inflate(R.layout.async_layout)
 
         readAttrs(attrs) {
@@ -40,9 +58,6 @@ class StateLayout @JvmOverloads constructor(
         }
     }
 
-    private var animate: Boolean = true
-    private var mLayoutFinished: Boolean = false
-
     var state: State<*> = State<Any>(status = Status.Loading)
         set(value) {
 
@@ -57,14 +72,16 @@ class StateLayout @JvmOverloads constructor(
             }
         }
 
-    var loadingSize: Int = 100.toPx
-    var onDestroyView: () -> Unit? = {}
-
     override fun addView(child: View, index: Int, params: ViewGroup.LayoutParams?) {
-        if (child.id == R.id.errorView ||
-                child.id == R.id.loadingView ||
-                child.id == R.id.content ||
-                child.id == R.id.noResults) {
+        if (child.tag != null && mTags.contains(child.tag)) {
+
+            when (child.tag) {
+                mNoResultsTag -> mNoResultsView = child
+                mLoadingTag -> mLoadingView = child
+                mErrorTag -> mErrorView = child
+                mSuccessTag -> mContentView = child
+            }
+
             super.addView(child, index, params)
             return
         }
@@ -72,40 +89,39 @@ class StateLayout @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
-        onDestroyView()
+        onDetachFromWindow()
         super.onDetachedFromWindow()
     }
 
     private fun updateState() {
         when (state.status) {
             Status.Success -> {
-                content.show()
-                hide(loadingView, errorView, noResults)
+                mContentView?.show()
+                hide(mLoadingView, mErrorView, mNoResultsView)
             }
             Status.Error -> {
-                errorView.show()
-                hide(content, loadingView, noResults)
+                mErrorView?.show()
+                hide(mContentView, mLoadingView, mNoResultsView)
             }
             Status.NoResults -> {
-                noResults.show()
-                hide(content, loadingView, errorView)
+                mNoResultsView?.show()
+                hide(mContentView, mLoadingView, mErrorView)
             }
             Status.Loading -> {
-                loadingView.show()
-                hide(content, noResults, errorView)
+                mLoadingView?.show()
+                hide(mContentView, mNoResultsView, mErrorView)
             }
         }
     }
 }
 
-private fun show(vararg views: View) {
-    views.forEach { it.show() }
+private fun show(vararg views: View?) {
+    views.forEach { it?.show() }
 }
 
-private fun hide(vararg views: View) {
-    views.forEach { it.hide() }
+private fun hide(vararg views: View?) {
+    views.forEach { it?.hide() }
 }
-
 
 @BindingAdapter("state")
 fun <T> StateLayout.setState(state: State<T>) {
@@ -121,7 +137,7 @@ fun <T> StateLayout.setStateLive(stateLive: LiveData<State<T>>?) {
             }
         }
         observeForever(observer)
-        onDestroyView = {
+        onDetachFromWindow = {
             stateLive.removeObserver(observer)
         }
     }

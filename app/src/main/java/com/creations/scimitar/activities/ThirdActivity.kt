@@ -3,17 +3,14 @@ package com.creations.scimitar.activities
 import android.os.Bundle
 import android.util.Log
 import androidx.databinding.DataBindingUtil
+import com.creations.annotations.*
+import com.creations.runtime.state.*
 import com.creations.scimitar.R
 import com.creations.scimitar.databinding.ActivityMainBinding
 import com.creations.scimitar.entities.Repo
 import com.creations.scimitar.entities.User
 import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.vm.ScimitarViewModelFactory
-import com.creations.annotations.*
-import com.creations.runtime.state.State
-import com.creations.runtime.state.StateError
-import com.creations.runtime.state.StateObserver
-import com.creations.runtime.state.Status
 import kotlinx.android.synthetic.main.activity_main.*
 
 class ThirdActivity : SecondActivity() {
@@ -40,7 +37,7 @@ class ThirdActivity : SecondActivity() {
         factory = ScimitarViewModelFactory()
         super.onCreate(savedInstanceState)
 
-        db = DataBindingUtil.setContentView(this,R.layout.activity_main)
+        db = DataBindingUtil.setContentView(this, R.layout.activity_main)
         db.setLifecycleOwner(this)
         db.vm = vm
 
@@ -52,24 +49,25 @@ class ThirdActivity : SecondActivity() {
     @OnSuccess(id = "users")
     fun renderUsers(user: User) {
         Log.d(TAG, "Render user: $user")
-        stateView.state = State<Any>(status = Status.Success)
+        stateView.state = success(user)
     }
 
     @OnError(id = "users")
     fun renderError(error: StateError) {
         Log.d(TAG, "Show error $error")
-        stateView.state = State<Any>(status = Status.Error)
+        stateView.state = error()
     }
 
     @OnLoading(id = "users")
     fun showLoading() {
         Log.d(TAG, "Show loading")
+        stateView.state = loading()
     }
 
     @OnNoResults(id = "users")
     fun showNoResults() {
         Log.d(TAG, "Show no results")
-        stateView.state = State<Any>(status = Status.NoResults)
+        stateView.state = noResults()
     }
 
     @OnSuccess(id = "repos")
