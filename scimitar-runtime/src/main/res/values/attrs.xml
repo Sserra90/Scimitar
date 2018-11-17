@@ -10,6 +10,11 @@
         </attr>
         <attr name="loadingSize" format="dimension" />
         <attr name="animate" format="boolean" />
+
+        <attr name="contentEnterAnim" format="enum" >
+            <enum name="animFadeIn" value="0" />
+        </attr>
+
     </declare-styleable>
 
 </resources>

@@ -8,4 +8,5 @@
     <string name="state_noResults">state.noResults</string>
     <string name="state_loading">state.loading</string>
 
+    <string name="anim_fade_in">state.anim.fadeIn</string>
 </resources>

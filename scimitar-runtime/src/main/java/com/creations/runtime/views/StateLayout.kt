@@ -5,10 +5,13 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.core.view.ViewCompat
 import androidx.databinding.BindingAdapter
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
 import com.creations.runtime.*
+import com.creations.runtime.anim.Animation
+import com.creations.runtime.anim.FadeInAnimation
 import com.creations.runtime.state.State
 import com.creations.runtime.state.Status
 import kotlinx.android.synthetic.main.async_layout.view.*
@@ -31,6 +34,8 @@ class StateLayout @JvmOverloads constructor(
     private var mNoResultsView: View? = null
     private var mContentView: View? = null
 
+    private var mContentEnterAnim: Animation? = null
+
     var loadingSize: Int = 100.toPx
     var onDetachFromWindow: () -> Unit? = {}
 
@@ -48,6 +53,16 @@ class StateLayout @JvmOverloads constructor(
                     else -> State<Any>()
                 }
             }
+
+            getInt(R.styleable.StateLayout_contentEnterAnim, 0).apply {
+                mContentEnterAnim = when (this) {
+                    0 -> FadeInAnimation()
+                    else -> {
+                        FadeInAnimation()
+                    }
+                }
+            }
+
             loadingSize = getDimensionPixelSize(R.styleable.StateLayout_loadingSize, 100.toPx)
             animate = getBoolean(R.styleable.StateLayout_animate, true)
         }
@@ -74,7 +89,6 @@ class StateLayout @JvmOverloads constructor(
 
     override fun addView(child: View, index: Int, params: ViewGroup.LayoutParams?) {
         if (child.tag != null && mTags.contains(child.tag)) {
-
             when (child.tag) {
                 mNoResultsTag -> mNoResultsView = child
                 mLoadingTag -> mLoadingView = child
@@ -96,7 +110,11 @@ class StateLayout @JvmOverloads constructor(
     private fun updateState() {
         when (state.status) {
             Status.Success -> {
-                mContentView?.show()
+
+                if (mContentEnterAnim != null) {
+                    mContentEnterAnim!!.run(mContentView)
+                }
+
                 hide(mLoadingView, mErrorView, mNoResultsView)
             }
             Status.Error -> {
