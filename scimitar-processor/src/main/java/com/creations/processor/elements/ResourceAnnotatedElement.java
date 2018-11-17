@@ -1,6 +1,6 @@
-package com.creations.scimitar_processor.elements;
+package com.creations.processor.elements;
 
-import com.creations.scimitar_annotations.ResourceObserver;
+import com.creations.annotations.ResourceObserver;
 
 import java.util.Objects;
 

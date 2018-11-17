@@ -1,6 +1,6 @@
-package com.creations.scimitar_processor.elements.methods;
+package com.creations.processor.elements.methods;
 
-import com.creations.scimitar_annotations.OnLoading;
+import com.creations.annotations.OnLoading;
 
 import javax.lang.model.element.Element;
 

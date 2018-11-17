@@ -1,7 +1,6 @@
-package com.creations.scimitar_processor.elements.methods;
+package com.creations.processor.elements.methods;
 
-import com.creations.scimitar_annotations.OnNoResults;
-import com.creations.scimitar_annotations.OnSuccess;
+import com.creations.annotations.OnNoResults;
 
 import javax.lang.model.element.Element;
 

@@ -1,11 +1,10 @@
-package com.creations.scimitar_processor.elements;
+package com.creations.processor.elements;
 
 import java.util.Objects;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
 
 public abstract class AnnotatedElement {
 

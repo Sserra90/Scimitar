@@ -6,8 +6,8 @@ import androidx.appcompat.app.AppCompatActivity
 import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.R
 import com.creations.scimitar.vm.ScimitarViewModelFactory
-import com.creations.scimitar_annotations.BindViewModel
-import com.creations.scimitar_annotations.ViewModelFactory
+import com.creations.annotations.BindViewModel
+import com.creations.annotations.ViewModelFactory
 import com.creations.runtime.scimitar
 
 open class FirstActivity : AppCompatActivity() {

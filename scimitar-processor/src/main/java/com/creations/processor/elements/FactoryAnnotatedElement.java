@@ -1,6 +1,6 @@
-package com.creations.scimitar_processor.elements;
+package com.creations.processor.elements;
 
-import com.creations.scimitar_annotations.ViewModelFactory;
+import com.creations.annotations.ViewModelFactory;
 
 import javax.lang.model.element.Element;
 

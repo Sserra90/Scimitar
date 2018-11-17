@@ -1,7 +1,7 @@
-package com.creations.scimitar_processor;
+package com.creations.processor;
 
-import com.creations.scimitar_processor.elements.AnnotatedElement;
-import com.creations.scimitar_processor.elements.methods.MethodElement;
+import com.creations.processor.elements.AnnotatedElement;
+import com.creations.processor.elements.methods.MethodElement;
 
 /**
  * @author Sérgio Serra on 23/09/2018.

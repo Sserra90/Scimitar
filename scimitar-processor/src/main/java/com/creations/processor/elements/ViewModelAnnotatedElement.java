@@ -1,4 +1,4 @@
-package com.creations.scimitar_processor.elements;
+package com.creations.processor.elements;
 
 import javax.lang.model.element.Element;
 

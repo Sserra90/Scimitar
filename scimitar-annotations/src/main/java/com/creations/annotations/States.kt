@@ -1,4 +1,4 @@
-package com.creations.scimitar_annotations
+package com.creations.annotations
 
 
 @Target(AnnotationTarget.FUNCTION)

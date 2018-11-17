@@ -1,8 +1,8 @@
-package com.creations.scimitar_processor;
+package com.creations.processor;
 
-import com.creations.scimitar_processor.elements.AnnotatedElement;
-import com.creations.scimitar_processor.elements.FactoryAnnotatedElement;
-import com.creations.scimitar_processor.elements.ResourceAnnotatedElement;
+import com.creations.processor.elements.AnnotatedElement;
+import com.creations.processor.elements.FactoryAnnotatedElement;
+import com.creations.processor.elements.ResourceAnnotatedElement;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;

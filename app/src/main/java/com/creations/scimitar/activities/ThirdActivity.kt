@@ -9,7 +9,7 @@ import com.creations.scimitar.entities.Repo
 import com.creations.scimitar.entities.User
 import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.vm.ScimitarViewModelFactory
-import com.creations.scimitar_annotations.*
+import com.creations.annotations.*
 import com.creations.runtime.state.State
 import com.creations.runtime.state.StateError
 import com.creations.runtime.state.StateObserver

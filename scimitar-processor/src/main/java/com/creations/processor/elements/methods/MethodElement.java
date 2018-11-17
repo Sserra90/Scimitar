@@ -1,9 +1,9 @@
-package com.creations.scimitar_processor.elements.methods;
+package com.creations.processor.elements.methods;
 
-import com.creations.scimitar_annotations.OnLoading;
-import com.creations.scimitar_annotations.OnNoResults;
-import com.creations.scimitar_annotations.OnSuccess;
-import com.creations.scimitar_processor.elements.AnnotatedElement;
+import com.creations.annotations.OnLoading;
+import com.creations.annotations.OnNoResults;
+import com.creations.annotations.OnSuccess;
+import com.creations.processor.elements.AnnotatedElement;
 
 import java.util.Objects;
 
