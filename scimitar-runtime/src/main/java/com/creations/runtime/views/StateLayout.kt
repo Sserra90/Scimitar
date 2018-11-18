@@ -2,16 +2,15 @@ package com.creations.runtime.views
 
 import android.content.Context
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.core.view.ViewCompat
 import androidx.databinding.BindingAdapter
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
 import com.creations.runtime.*
-import com.creations.runtime.anim.Animation
-import com.creations.runtime.anim.FadeInAnimation
+import com.creations.runtime.anim.*
 import com.creations.runtime.state.State
 import com.creations.runtime.state.Status
 import kotlinx.android.synthetic.main.async_layout.view.*
@@ -35,9 +34,33 @@ class StateLayout @JvmOverloads constructor(
     private var mContentView: View? = null
 
     private var mContentEnterAnim: Animation? = null
+    private var mLoadingEnterAnim: Animation? = null
+    private var mErrorEnterAnim: Animation? = null
+    private var mNoResultsEnterAnim: Animation? = null
+
+    private var mNoResultsExitAnim: Animation? = null
+    private var mLoadingExitAnim: Animation? = null
+    private var mErrorExitAnim: Animation? = null
 
     var loadingSize: Int = 100.toPx
     var onDetachFromWindow: () -> Unit? = {}
+
+    var prevState: State<*>? = null
+    var state: State<*> = State<Any>(status = Status.Loading)
+        set(value) {
+
+            // Check if the state is the same.
+            if (field == value) {
+                return
+            }
+
+            prevState = field
+            field = value
+            if (mLayoutFinished) {
+                updateState()
+            }
+        }
+
 
     init {
 
@@ -46,19 +69,87 @@ class StateLayout @JvmOverloads constructor(
         readAttrs(attrs) {
             getInt(R.styleable.StateLayout_state, 0).apply {
                 state = when (this) {
-                    0 -> State<Any>()
+                    0 -> State(Status.Loading)
                     1 -> State(Status.Success)
                     3 -> State(Status.Error)
                     4 -> State(Status.NoResults)
-                    else -> State<Any>()
+                    else -> State(Status.Loading)
                 }
             }
 
+            // Content enter animation
             getInt(R.styleable.StateLayout_contentEnterAnim, 0).apply {
                 mContentEnterAnim = when (this) {
-                    0 -> FadeInAnimation()
+                    0 -> fadeIn()
+                    1 -> slideUp()
                     else -> {
-                        FadeInAnimation()
+                        fadeIn()
+                    }
+                }
+            }
+
+            // Loading enter animation
+            getInt(R.styleable.StateLayout_loadingEnterAnim, 0).apply {
+                mLoadingEnterAnim = when (this) {
+                    0 -> fadeIn()
+                    1 -> slideUp()
+                    else -> {
+                        fadeIn()
+                    }
+                }
+            }
+
+            // Loading exit animation
+            getInt(R.styleable.StateLayout_loadingExitAnim, 0).apply {
+                mLoadingExitAnim = when (this) {
+                    0 -> fadeOut()
+                    1 -> slideDown()
+                    else -> {
+                        fadeOut()
+                    }
+                }
+            }
+
+            // Error exit animation
+            getInt(R.styleable.StateLayout_errorExitAnim, 0).apply {
+                mErrorExitAnim = when (this) {
+                    0 -> fadeOut()
+                    1 -> slideDown()
+                    else -> {
+                        fadeOut()
+                    }
+                }
+            }
+
+            // Error enter animation
+            getInt(R.styleable.StateLayout_errorEnterAnim, 0).apply {
+                mErrorEnterAnim = when (this) {
+                    0 -> fadeIn()
+                    1 -> slideUp()
+                    else -> {
+                        fadeIn()
+                    }
+                }
+            }
+
+            // No results enter animation
+            getInt(R.styleable.StateLayout_noResultsEnterAnim, 0).apply {
+                mNoResultsEnterAnim = when (this) {
+                    0 -> fadeIn()
+                    1 -> slideUp()
+                    else -> {
+                        fadeIn()
+                    }
+                }
+            }
+
+            // No results exit animation
+            getInt(R.styleable.StateLayout_noResultsExitAnim, 0).apply {
+                mNoResultsExitAnim = when (this) {
+                    0 -> fadeOut()
+                    1 -> slideDown()
+                    else -> {
+                        fadeOut()
                     }
                 }
             }
@@ -72,20 +163,6 @@ class StateLayout @JvmOverloads constructor(
             updateState()
         }
     }
-
-    var state: State<*> = State<Any>(status = Status.Loading)
-        set(value) {
-
-            // Check if the state is the same.
-            if (field == value) {
-                return
-            }
-
-            field = value
-            if (mLayoutFinished) {
-                updateState()
-            }
-        }
 
     override fun addView(child: View, index: Int, params: ViewGroup.LayoutParams?) {
         if (child.tag != null && mTags.contains(child.tag)) {
@@ -107,27 +184,53 @@ class StateLayout @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
+    private fun showView(view: View?, anim: Animation?) {
+        if (animate && anim != null) {
+            anim.run(view)
+        } else {
+            show(view)
+        }
+    }
+
+    private fun hideView(view: View?, anim: Animation?) {
+        if (animate && anim != null) {
+            anim.run(view)
+        } else {
+            hide(view)
+        }
+    }
+
     private fun updateState() {
+
+        // Run exit animations from previous state.
+        if (prevState != null) {
+            Log.d("StateLayout", "Prev state $prevState")
+            when (prevState?.status) {
+                Status.Error -> {
+                    hideView(mErrorView, mErrorExitAnim)
+                }
+                Status.NoResults -> {
+                    hideView(mNoResultsView, mNoResultsExitAnim)
+                }
+                Status.Loading -> {
+                    hideView(mLoadingView, mLoadingExitAnim)
+                }
+            }
+        }
+
+        Log.d("StateLayout", "New state $state")
         when (state.status) {
             Status.Success -> {
-
-                if (mContentEnterAnim != null) {
-                    mContentEnterAnim!!.run(mContentView)
-                }
-
-                hide(mLoadingView, mErrorView, mNoResultsView)
+                showView(mContentView, mContentEnterAnim)
             }
             Status.Error -> {
-                mErrorView?.show()
-                hide(mContentView, mLoadingView, mNoResultsView)
+                showView(mErrorView, mErrorEnterAnim)
             }
             Status.NoResults -> {
-                mNoResultsView?.show()
-                hide(mContentView, mLoadingView, mErrorView)
+                showView(mNoResultsView, mNoResultsEnterAnim)
             }
             Status.Loading -> {
-                mLoadingView?.show()
-                hide(mContentView, mNoResultsView, mErrorView)
+                showView(mLoadingView, mLoadingEnterAnim)
             }
         }
     }

@@ -1,11 +1,11 @@
 package com.creations.runtime.anim
 
-import android.util.Log
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.Interpolator
 import androidx.core.view.ViewCompat
 import androidx.core.view.ViewPropertyAnimatorListener
+import com.creations.runtime.toPx
 
 abstract class Animation(
         val duration: Long = 320,
@@ -15,11 +15,16 @@ abstract class Animation(
     abstract fun run(target: View?)
 }
 
-class FadeInAnimation : Animation() {
+fun fadeIn(): Animation = FadeAnimation(true)
+fun fadeOut(): Animation = FadeAnimation(false)
+fun slideUp(): Animation = SlideAnimation(true)
+fun slideDown(): Animation = SlideAnimation(false)
+
+private class FadeAnimation(private val fadeIn: Boolean = true) : Animation() {
 
     override fun prepareView(target: View?) {
         target?.apply {
-            alpha = 0F
+            alpha = if (fadeIn) 0F else 1F
             visibility = View.VISIBLE
         }
     }
@@ -30,7 +35,32 @@ class FadeInAnimation : Animation() {
             prepareView(this)
             ViewCompat
                     .animate(this)
-                    .alpha(1F)
+                    .alpha(if (fadeIn) 1F else 0F)
+                    .setDuration(duration)
+                    .setInterpolator(interpolator)
+        }
+    }
+}
+
+private class SlideAnimation(
+        private val slideUp: Boolean = true,
+        private val translateY: Float = 100.toPx.toFloat()
+) : Animation() {
+
+    override fun prepareView(target: View?) {
+        target?.apply {
+            y += if (slideUp) -translateY else translateY
+            visibility = View.VISIBLE
+        }
+    }
+
+    @Suppress("UsePropertyAccessSyntax")
+    override fun run(target: View?) {
+        target?.apply {
+            prepareView(this)
+            ViewCompat
+                    .animate(this)
+                    .yBy(if (slideUp) translateY else -translateY)
                     .setDuration(duration)
                     .setInterpolator(interpolator)
         }

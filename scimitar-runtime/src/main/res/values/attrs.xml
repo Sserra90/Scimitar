@@ -13,6 +13,50 @@
 
         <attr name="contentEnterAnim" format="enum" >
             <enum name="animFadeIn" value="0" />
+            <enum name="animSlideUp" value="0" />
+            <enum name="animSlideUpFadeIn" value="0" />
+            <enum name="animRotateUp" value="0" />
+            <enum name="animRotateUpSlideUp" value="0" />
+            <enum name="animRotateUpFadeIn" value="0" />
+        </attr>
+
+        <attr name="errorEnterAnim" format="enum" >
+            <enum name="animFadeIn" value="0" />
+            <enum name="animSlideUp" value="0" />
+            <enum name="animSlideUpFadeIn" value="0" />
+            <enum name="animRotateUp" value="0" />
+            <enum name="animRotateUpSlideUp" value="0" />
+            <enum name="animRotateUpFadeIn" value="0" />
+        </attr>
+
+        <attr name="errorExitAnim" format="enum" >
+            <enum name="animFadeOut" value="0" />
+            <enum name="animSlideDown" value="0" />
+            <enum name="animSlideDownFadeOut" value="0" />
+        </attr>
+
+        <attr name="loadingExitAnim" format="enum" >
+            <enum name="animFadeOut" value="0" />
+            <enum name="animSlideDown" value="0" />
+            <enum name="animSlideDownFadeOut" value="0" />
+        </attr>
+
+        <attr name="loadingEnterAnim" format="enum" >
+            <enum name="animFadeIn" value="0" />
+            <enum name="animSlideUp" value="0" />
+            <enum name="animSlideUpFadeIn" value="0" />
+        </attr>
+
+        <attr name="noResultsExitAnim" format="enum" >
+            <enum name="animFadeOut" value="0" />
+            <enum name="animSlideDown" value="0" />
+            <enum name="animSlideDownFadeOut" value="0" />
+        </attr>
+
+        <attr name="noResultsEnterAnim" format="enum" >
+            <enum name="animFadeIn" value="0" />
+            <enum name="animSlideUp" value="0" />
+            <enum name="animSlideUpFadeIn" value="0" />
         </attr>
 
     </declare-styleable>
