@@ -8,6 +8,8 @@ import androidx.lifecycle.ViewModel
 import com.creations.scimitar.entities.User
 import com.creations.runtime.state.State
 import com.creations.runtime.state.Status
+import com.creations.runtime.state.error
+import com.creations.runtime.state.loading
 import java.util.concurrent.TimeUnit
 
 class MyViewModel : ViewModel() {
@@ -17,11 +19,11 @@ class MyViewModel : ViewModel() {
     fun getState(): LiveData<State<User>> = stateLive
 
     fun getUsers() {
-        stateLive.value = State(status = Status.Loading)
+        stateLive.value = loading()
         Handler().postDelayed(
                 {
                     //stateLive.value = State(User(1), Status.Success)
-                    stateLive.value = State(User(1), Status.Error)
+                    stateLive.value = error()
 
                 },
                 TimeUnit.SECONDS.toMillis(3)

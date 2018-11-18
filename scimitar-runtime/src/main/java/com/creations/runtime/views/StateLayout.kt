@@ -65,8 +65,8 @@ class StateLayout @JvmOverloads constructor(
             errorBtn.setOnClickListener(field)
         }
 
-    private var prevState: State<*>? = null
-    var state: State<*>? = null
+    private var prevState: State<Any>? = null
+    var state: State<Any>? = null
         set(value) {
 
             // Check if the state is the same.
@@ -301,17 +301,19 @@ private fun hide(vararg views: View?) {
     views.forEach { it?.hide() }
 }
 
+@Suppress("UNCHECKED_CAST")
 @BindingAdapter("state")
 fun <T> StateLayout.setState(state: State<T>) {
-    this.state = state
+    this.state = state as State<Any>
 }
 
+@Suppress("UNCHECKED_CAST")
 @BindingAdapter("stateLive")
 fun <T> StateLayout.setStateLive(stateLive: LiveData<State<T>>?) {
     stateLive?.apply {
         val observer: Observer<State<T>> = Observer { it ->
             it?.apply {
-                state = this
+                state = this as State<Any>
             }
         }
         observeForever(observer)
