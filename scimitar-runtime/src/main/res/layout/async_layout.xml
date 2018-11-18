@@ -18,12 +18,11 @@
         android:tag="@string/state_loading"
         android:visibility="gone" />
 
-    <FrameLayout
+    <include
         android:id="@+id/errorView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:tag="@string/state_error"
+        layout="@layout/error_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:visibility="gone" />
 
     <FrameLayout

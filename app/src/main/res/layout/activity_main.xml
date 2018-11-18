@@ -20,10 +20,13 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:animate="true"
-            app:ordering="sequence"
             app:contentEnterAnim="SlideUpFadeIn"
+            app:errorEnterAnim="SlideUpFadeIn"
+            app:errorExitAnim="FadeOut"
+            app:errorListener="@{(view)->vm.getUsers()}"
             app:loadingEnterAnim="FadeIn"
             app:loadingExitAnim="SlideUpFadeOut"
+            app:ordering="sequence"
             app:stateLive="@{vm.stateLive}">
 
             <TextView

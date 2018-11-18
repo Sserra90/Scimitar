@@ -5,9 +5,9 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.Gravity
 import android.view.View
+import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.ProgressBar
 import androidx.databinding.BindingAdapter
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
@@ -15,7 +15,9 @@ import com.creations.runtime.*
 import com.creations.runtime.anim.*
 import com.creations.runtime.state.State
 import com.creations.runtime.state.Status
+import com.creations.runtime.state.loading
 import kotlinx.android.synthetic.main.async_layout.view.*
+import kotlinx.android.synthetic.main.error_view.view.*
 
 typealias Animator = (target: View, runAfter: (() -> Unit)?) -> Unit
 
@@ -54,6 +56,14 @@ class StateLayout @JvmOverloads constructor(
     var order: Ordering? = null
     var loadingSize: Int = 100.toPx
     var onDetachFromWindow: () -> Unit? = {}
+    var errorClickListener: View.OnClickListener? = null
+        set(value) {
+            field = OnClickListener { view ->
+                state = loading()
+                value?.onClick(view)
+            }
+            errorBtn.setOnClickListener(field)
+        }
 
     private var prevState: State<*>? = null
     var state: State<*>? = null
@@ -309,4 +319,9 @@ fun <T> StateLayout.setStateLive(stateLive: LiveData<State<T>>?) {
             stateLive.removeObserver(observer)
         }
     }
+}
+
+@BindingAdapter("errorListener")
+fun StateLayout.setErrorClickListener(listener: View.OnClickListener) {
+    errorClickListener = listener
 }

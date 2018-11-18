@@ -27,10 +27,9 @@
         <attr name="errorEnterAnim" format="enum">
             <enum name="FadeIn" value="0" />
             <enum name="SlideUp" value="1" />
-            <enum name="SlideUpFadeIn" value="2" />
-            <enum name="RotateUp" value="3" />
-            <enum name="RotateUpSlideUp" value="4" />
-            <enum name="RotateUpFadeIn" value="5" />
+            <enum name="SlideDown" value="2" />
+            <enum name="SlideUpFadeIn" value="3" />
+            <enum name="SlideDownFadeIn" value="4" />
         </attr>
 
         <attr name="errorExitAnim" format="enum">

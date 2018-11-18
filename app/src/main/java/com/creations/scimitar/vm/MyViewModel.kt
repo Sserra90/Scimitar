@@ -20,7 +20,9 @@ class MyViewModel : ViewModel() {
         stateLive.value = State(status = Status.Loading)
         Handler().postDelayed(
                 {
-                    stateLive.value = State(User(1), Status.Success)
+                    //stateLive.value = State(User(1), Status.Success)
+                    stateLive.value = State(User(1), Status.Error)
+
                 },
                 TimeUnit.SECONDS.toMillis(3)
         )

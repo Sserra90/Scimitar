@@ -7,4 +7,6 @@
     <string name="state_error">state.error</string>
     <string name="state_noResults">state.noResults</string>
     <string name="state_loading">state.loading</string>
+
+    <string name="error_button">Try again</string>
 </resources>

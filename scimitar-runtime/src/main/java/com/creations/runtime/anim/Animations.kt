@@ -92,7 +92,13 @@ private class SlideAnimation(
                     .setInterpolator(interpolator)
                     .setListener(object : SimpleListener() {
                         override fun onAnimationEnd(view: View?) {
-                            view?.visibility = if (enter) View.VISIBLE else View.GONE
+                            if (!enter) {
+                                view?.apply {
+                                    visibility = View.GONE
+                                    // Reset state
+                                    view.y += if (slideUp) translateY else -translateY
+                                }
+                            }
                             runAfter?.invoke()
                         }
                     })
@@ -128,7 +134,13 @@ private class SlideFadeAnimation(
                     .setInterpolator(interpolator)
                     .setListener(object : SimpleListener() {
                         override fun onAnimationEnd(view: View?) {
-                            view?.visibility = if (fadeIn) View.VISIBLE else View.GONE
+                            if (!fadeIn) {
+                                view?.apply {
+                                    visibility = View.GONE
+                                    // Reset state
+                                    view.y += if (slideUp) translateY else -translateY
+                                }
+                            }
                             runAfter?.invoke()
                         }
                     })
