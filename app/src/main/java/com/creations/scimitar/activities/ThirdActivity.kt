@@ -56,7 +56,7 @@ class ThirdActivity : SecondActivity() {
         }*/
 
         Log.d(TAG, "Vm injected: $vm")
-        vm.stateLive.observe(this, usersObserver)
+        //vm.stateLive.observe(this, usersObserver)
         vm.getUsers()
     }
 

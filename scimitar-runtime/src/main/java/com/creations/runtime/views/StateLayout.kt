@@ -3,9 +3,11 @@ package com.creations.runtime.views
 import android.content.Context
 import android.util.AttributeSet
 import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ProgressBar
 import androidx.databinding.BindingAdapter
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
@@ -68,7 +70,6 @@ class StateLayout @JvmOverloads constructor(
                 updateState()
             }
         }
-
 
     init {
         inflate(R.layout.async_layout)
@@ -166,8 +167,12 @@ class StateLayout @JvmOverloads constructor(
                 }
             }
 
-            loadingSize = getDimensionPixelSize(R.styleable.StateLayout_loadingSize, 100.toPx)
+            loadingSize = getDimensionPixelSize(R.styleable.StateLayout_loadingSize, 50.toPx)
             animate = getBoolean(R.styleable.StateLayout_animate, false)
+        }
+
+        loadingView.apply {
+            layoutParams = LayoutParams(loadingSize, loadingSize, Gravity.CENTER)
         }
 
         doOnPreDraw {
