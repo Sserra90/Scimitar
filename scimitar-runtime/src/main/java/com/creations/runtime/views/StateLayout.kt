@@ -15,6 +15,7 @@ import com.creations.runtime.state.State
 import com.creations.runtime.state.Status
 import kotlinx.android.synthetic.main.async_layout.view.*
 
+typealias Animator = (target: View, runAfter: (() -> Unit)?) -> Unit
 
 sealed class Ordering {
     object Sequence : Ordering()
@@ -39,17 +40,16 @@ class StateLayout @JvmOverloads constructor(
     private var mNoResultsView: View? = null
     private var mContentView: View? = null
 
-    private var mContentEnterAnim: Animation? = null
-    private var mLoadingEnterAnim: Animation? = null
-    private var mErrorEnterAnim: Animation? = null
-    private var mNoResultsEnterAnim: Animation? = null
+    var contentEnterAnim: Animator? = null
+    var loadingEnterAnim: Animator? = null
+    var errorEnterAnim: Animator? = null
+    var noResultsEnterAnim: Animator? = null
 
-    private var mNoResultsExitAnim: Animation? = null
-    private var mLoadingExitAnim: Animation? = null
-    private var mErrorExitAnim: Animation? = null
+    var noResultsExitAnim: Animator? = null
+    var loadingExitAnim: Animator? = null
+    var errorExitAnim: Animator? = null
 
-    private var mOrder: Ordering? = null
-
+    var order: Ordering? = null
     var loadingSize: Int = 100.toPx
     var onDetachFromWindow: () -> Unit? = {}
 
@@ -75,7 +75,7 @@ class StateLayout @JvmOverloads constructor(
 
         readAttrs(attrs) {
             getInt(R.styleable.StateLayout_ordering, 1).apply {
-                mOrder = when (this) {
+                order = when (this) {
                     0 -> Ordering.Sequence
                     1 -> Ordering.Together
                     else -> Ordering.Sequence
@@ -84,99 +84,85 @@ class StateLayout @JvmOverloads constructor(
 
             // Content enter animation
             getInt(R.styleable.StateLayout_contentEnterAnim, 0).apply {
-                mContentEnterAnim = when (this) {
+                contentEnterAnim = when (this) {
                     0 -> fadeIn()
                     1 -> slideUp(true)
                     2 -> slideDown(true)
                     3 -> slideUpFadeIn()
                     4 -> slideDownFadeIn()
-                    else -> {
-                        fadeIn()
-                    }
+                    else -> null
                 }
             }
 
             // Loading enter animation
             getInt(R.styleable.StateLayout_loadingEnterAnim, 0).apply {
-                mLoadingEnterAnim = when (this) {
+                loadingEnterAnim = when (this) {
                     0 -> fadeIn()
                     1 -> slideUp(true)
                     2 -> slideDown(true)
                     3 -> slideUpFadeIn()
                     4 -> slideDownFadeIn()
-                    else -> {
-                        fadeIn()
-                    }
+                    else -> null
                 }
             }
 
             // Loading exit animation
             getInt(R.styleable.StateLayout_loadingExitAnim, 0).apply {
-                mLoadingExitAnim = when (this) {
+                loadingExitAnim = when (this) {
                     0 -> fadeOut()
                     1 -> slideDown(false)
                     2 -> slideUp(false)
                     3 -> slideDownFadeOut()
                     4 -> slideUpFadeOut()
-                    else -> {
-                        fadeOut()
-                    }
+                    else -> null
                 }
             }
 
             // Error exit animation
             getInt(R.styleable.StateLayout_errorExitAnim, 0).apply {
-                mErrorExitAnim = when (this) {
+                errorExitAnim = when (this) {
                     0 -> fadeOut()
                     1 -> slideDown(false)
                     2 -> slideUp(false)
                     3 -> slideDownFadeOut()
                     4 -> slideUpFadeOut()
-                    else -> {
-                        fadeOut()
-                    }
+                    else -> null
                 }
             }
 
             // Error enter animation
             getInt(R.styleable.StateLayout_errorEnterAnim, 0).apply {
-                mErrorEnterAnim = when (this) {
+                errorEnterAnim = when (this) {
                     0 -> fadeIn()
                     1 -> slideUp(true)
                     2 -> slideDown(true)
                     3 -> slideUpFadeIn()
                     4 -> slideDownFadeIn()
-                    else -> {
-                        fadeIn()
-                    }
+                    else -> null
                 }
             }
 
             // No results enter animation
             getInt(R.styleable.StateLayout_noResultsEnterAnim, 0).apply {
-                mNoResultsEnterAnim = when (this) {
+                noResultsEnterAnim = when (this) {
                     0 -> fadeIn()
                     1 -> slideUp(true)
                     2 -> slideDown(true)
                     3 -> slideUpFadeIn()
                     4 -> slideDownFadeIn()
-                    else -> {
-                        fadeIn()
-                    }
+                    else -> null
                 }
             }
 
             // No results exit animation
             getInt(R.styleable.StateLayout_noResultsExitAnim, 0).apply {
-                mNoResultsExitAnim = when (this) {
+                noResultsExitAnim = when (this) {
                     0 -> fadeOut()
                     1 -> slideDown(false)
                     2 -> slideUp(false)
                     3 -> slideDownFadeOut()
                     4 -> slideUpFadeOut()
-                    else -> {
-                        fadeOut()
-                    }
+                    else -> null
                 }
             }
 
@@ -210,20 +196,31 @@ class StateLayout @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
-    private fun showView(view: View?, anim: Animation?) {
-        if (animate && anim != null) {
-            anim.run(view)
-        } else {
-            show(view)
+    private fun showView(view: View?, anim: Animator?) {
+        if (view == null) {
+            return
         }
+
+        if (animate && anim != null) {
+            anim(view, null)
+            return
+        }
+
+        show(view)
     }
 
-    private fun hideView(view: View?, anim: Animation?, runAfter: () -> Unit = {}) {
-        if (animate && anim != null) {
-            anim.run(view, runAfter)
-        } else {
-            hide(view)
+    private fun hideView(view: View?, anim: Animator?, runAfter: () -> Unit = {}) {
+
+        if (view == null) {
+            return
         }
+
+        if (animate && anim != null) {
+            anim(view, runAfter)
+            return
+        }
+
+        hide(view)
     }
 
     private fun updateState() {
@@ -231,7 +228,7 @@ class StateLayout @JvmOverloads constructor(
         Log.d("StateLayout", "Prev state $prevState")
         Log.d("StateLayout", "New state $state")
 
-        if (mOrder is Ordering.Together) {
+        if (order is Ordering.Together) {
             runExitAnim()
             runEnterAnim()
         } else {
@@ -245,16 +242,16 @@ class StateLayout @JvmOverloads constructor(
 
     // Run exit animations from previous state.
     private fun runExitAnim(runAfter: () -> Unit = {}) {
-        var pair: Pair<View?, Animation?>? = null
+        var pair: Pair<View?, Animator?>? = null
         when (prevState?.status) {
             Status.Error -> {
-                pair = mErrorView to mErrorExitAnim
+                pair = mErrorView to errorExitAnim
             }
             Status.NoResults -> {
-                pair = mNoResultsView to mNoResultsExitAnim
+                pair = mNoResultsView to noResultsExitAnim
             }
             Status.Loading -> {
-                pair = mLoadingView to mLoadingExitAnim
+                pair = mLoadingView to loadingExitAnim
             }
         }
 
@@ -266,16 +263,16 @@ class StateLayout @JvmOverloads constructor(
     private fun runEnterAnim() {
         when (state?.status) {
             Status.Success -> {
-                showView(mContentView, mContentEnterAnim)
+                showView(mContentView, contentEnterAnim)
             }
             Status.Error -> {
-                showView(mErrorView, mErrorEnterAnim)
+                showView(mErrorView, errorEnterAnim)
             }
             Status.NoResults -> {
-                showView(mNoResultsView, mNoResultsEnterAnim)
+                showView(mNoResultsView, noResultsEnterAnim)
             }
             Status.Loading -> {
-                showView(mLoadingView, mLoadingEnterAnim)
+                showView(mLoadingView, loadingEnterAnim)
             }
         }
     }

@@ -2,6 +2,7 @@ package com.creations.scimitar.activities
 
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import androidx.databinding.DataBindingUtil
 import com.creations.annotations.*
 import com.creations.runtime.state.*
@@ -41,8 +42,21 @@ class ThirdActivity : SecondActivity() {
         db.setLifecycleOwner(this)
         db.vm = vm
 
+        /*
+        stateView.apply {
+            loadingExitAnim = { v, _ ->
+                v.alpha = 1F
+                v.animate().alpha(0F).duration = 320
+            }
+            contentEnterAnim = { v, _ ->
+                v.alpha = 0F
+                v.visibility = View.VISIBLE
+                v.animate().alpha(1F).duration = 320
+            }
+        }*/
+
         Log.d(TAG, "Vm injected: $vm")
-        //vm.liveData.observe(this, usersObserver)
+        vm.stateLive.observe(this, usersObserver)
         vm.getUsers()
     }
 

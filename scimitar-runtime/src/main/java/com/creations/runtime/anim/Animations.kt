@@ -9,6 +9,7 @@ import android.view.animation.Interpolator
 import androidx.core.view.ViewCompat
 import androidx.core.view.ViewPropertyAnimatorListener
 import com.creations.runtime.toPx
+import com.creations.runtime.views.Animator
 
 fun screenSize(context: Context): Pair<Int, Int> {
     val displayMetrics = DisplayMetrics()
@@ -17,37 +18,38 @@ fun screenSize(context: Context): Pair<Int, Int> {
     return Pair(displayMetrics.widthPixels, displayMetrics.heightPixels)
 }
 
-fun fadeIn(): Animation = FadeAnimation(true)
-fun fadeOut(): Animation = FadeAnimation(false)
-fun slideUp(enter: Boolean, translateY: Float = 150.toPx.toFloat()): Animation =
-        SlideAnimation(enter, true, translateY)
+fun fadeIn(): Animator = { v, run -> FadeAnimation(true).run(v, run) }
 
-fun slideDown(enter: Boolean, translateY: Float = 150.toPx.toFloat()): Animation =
-        SlideAnimation(enter, false, translateY)
+fun fadeOut(): Animator = { v, run -> FadeAnimation(false).run(v, run) }
 
-fun slideUpFadeIn(translateY: Float = 150.toPx.toFloat()): Animation =
-        SlideFadeAnimation(true, true, translateY)
+fun slideUp(enter: Boolean, translateY: Float = 150.toPx.toFloat()): Animator =
+        { v, run -> SlideAnimation(enter, true, translateY).run(v, run) }
 
-fun slideUpFadeOut(translateY: Float = 150.toPx.toFloat()): Animation =
-        SlideFadeAnimation(true, false, translateY)
+fun slideDown(enter: Boolean, translateY: Float = 150.toPx.toFloat()): Animator =
+        { v, run -> SlideAnimation(enter, false, translateY).run(v, run) }
 
-fun slideDownFadeIn(translateY: Float = 150.toPx.toFloat()): Animation =
-        SlideFadeAnimation(false, true, translateY)
+fun slideUpFadeIn(translateY: Float = 150.toPx.toFloat()): Animator =
+        { v, run -> SlideFadeAnimation(true, true, translateY).run(v, run) }
 
-fun slideDownFadeOut(translateY: Float = 150.toPx.toFloat()): Animation =
-        SlideFadeAnimation(false, false, translateY)
+fun slideUpFadeOut(translateY: Float = 150.toPx.toFloat()): Animator =
+        { v, run -> SlideFadeAnimation(true, false, translateY).run(v, run) }
+
+fun slideDownFadeIn(translateY: Float = 150.toPx.toFloat()): Animator =
+        { v, run -> SlideFadeAnimation(false, true, translateY).run(v, run) }
+
+fun slideDownFadeOut(translateY: Float = 150.toPx.toFloat()): Animator =
+        { v, run -> SlideFadeAnimation(false, false, translateY).run(v, run) }
 
 abstract class Animation(
         val duration: Long = 320,
         val interpolator: Interpolator = AccelerateDecelerateInterpolator()
 ) {
-    abstract fun prepareView(target: View?)
-    abstract fun run(target: View?, runAfter: () -> Unit = {})
+    abstract fun run(target: View?, runAfter: (() -> Unit)?)
 }
 
 private class FadeAnimation(private val fadeIn: Boolean = true) : Animation() {
 
-    override fun prepareView(target: View?) {
+    fun prepareView(target: View?) {
         target?.apply {
             alpha = if (fadeIn) 0F else 1F
             visibility = View.VISIBLE
@@ -55,7 +57,7 @@ private class FadeAnimation(private val fadeIn: Boolean = true) : Animation() {
     }
 
     @Suppress("UsePropertyAccessSyntax")
-    override fun run(target: View?, runAfter: () -> Unit) {
+    override fun run(target: View?, runAfter: (() -> Unit)?) {
         target?.apply {
             prepareView(this)
             ViewCompat
@@ -66,7 +68,7 @@ private class FadeAnimation(private val fadeIn: Boolean = true) : Animation() {
                     .setListener(object : SimpleListener() {
                         override fun onAnimationEnd(view: View?) {
                             view?.visibility = if (fadeIn) View.VISIBLE else View.GONE
-                            runAfter()
+                            runAfter?.invoke()
                         }
                     })
         }
@@ -79,17 +81,10 @@ private class SlideAnimation(
         private val translateY: Float
 ) : Animation() {
 
-    override fun prepareView(target: View?) {
-        target?.apply {
-            //y += if (slideUp) -translateY else translateY
-            visibility = View.VISIBLE
-        }
-    }
-
     @Suppress("UsePropertyAccessSyntax")
-    override fun run(target: View?, runAfter: () -> Unit) {
+    override fun run(target: View?, runAfter: (() -> Unit)?) {
         target?.apply {
-            prepareView(this)
+            visibility = View.VISIBLE
             ViewCompat
                     .animate(this)
                     .yBy(if (slideUp) -translateY else translateY)
@@ -98,7 +93,7 @@ private class SlideAnimation(
                     .setListener(object : SimpleListener() {
                         override fun onAnimationEnd(view: View?) {
                             view?.visibility = if (enter) View.VISIBLE else View.GONE
-                            runAfter()
+                            runAfter?.invoke()
                         }
                     })
         }
@@ -111,7 +106,7 @@ private class SlideFadeAnimation(
         private val translateY: Float
 ) : Animation() {
 
-    override fun prepareView(target: View?) {
+    fun prepareView(target: View?) {
         target?.apply {
             if (fadeIn) {
                 y += if (slideUp) translateY else -translateY
@@ -122,7 +117,7 @@ private class SlideFadeAnimation(
     }
 
     @Suppress("UsePropertyAccessSyntax")
-    override fun run(target: View?, runAfter: () -> Unit) {
+    override fun run(target: View?, runAfter: (() -> Unit)?) {
         target?.apply {
             prepareView(this)
             ViewCompat
@@ -134,7 +129,7 @@ private class SlideFadeAnimation(
                     .setListener(object : SimpleListener() {
                         override fun onAnimationEnd(view: View?) {
                             view?.visibility = if (fadeIn) View.VISIBLE else View.GONE
-                            runAfter()
+                            runAfter?.invoke()
                         }
                     })
         }
