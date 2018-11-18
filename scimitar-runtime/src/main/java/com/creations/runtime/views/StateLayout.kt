@@ -15,6 +15,7 @@ import com.creations.runtime.state.State
 import com.creations.runtime.state.Status
 import kotlinx.android.synthetic.main.async_layout.view.*
 
+
 sealed class Ordering {
     object Sequence : Ordering()
     object Together : Ordering()
@@ -52,8 +53,8 @@ class StateLayout @JvmOverloads constructor(
     var loadingSize: Int = 100.toPx
     var onDetachFromWindow: () -> Unit? = {}
 
-    var prevState: State<*>? = null
-    var state: State<*> = State<Any>(status = Status.Loading)
+    private var prevState: State<*>? = null
+    var state: State<*>? = null
         set(value) {
 
             // Check if the state is the same.
@@ -70,21 +71,9 @@ class StateLayout @JvmOverloads constructor(
 
 
     init {
-
         inflate(R.layout.async_layout)
 
         readAttrs(attrs) {
-            getInt(R.styleable.StateLayout_state, 0).apply {
-                state = when (this) {
-                    0 -> State(Status.Loading)
-                    1 -> State(Status.Success)
-                    3 -> State(Status.Error)
-                    4 -> State(Status.NoResults)
-                    else -> State(Status.Loading)
-                }
-            }
-
-
             getInt(R.styleable.StateLayout_ordering, 1).apply {
                 mOrder = when (this) {
                     0 -> Ordering.Sequence
@@ -97,7 +86,10 @@ class StateLayout @JvmOverloads constructor(
             getInt(R.styleable.StateLayout_contentEnterAnim, 0).apply {
                 mContentEnterAnim = when (this) {
                     0 -> fadeIn()
-                    1 -> slideUp()
+                    1 -> slideUp(true)
+                    2 -> slideDown(true)
+                    3 -> slideUpFadeIn()
+                    4 -> slideDownFadeIn()
                     else -> {
                         fadeIn()
                     }
@@ -108,7 +100,10 @@ class StateLayout @JvmOverloads constructor(
             getInt(R.styleable.StateLayout_loadingEnterAnim, 0).apply {
                 mLoadingEnterAnim = when (this) {
                     0 -> fadeIn()
-                    1 -> slideUp()
+                    1 -> slideUp(true)
+                    2 -> slideDown(true)
+                    3 -> slideUpFadeIn()
+                    4 -> slideDownFadeIn()
                     else -> {
                         fadeIn()
                     }
@@ -119,7 +114,10 @@ class StateLayout @JvmOverloads constructor(
             getInt(R.styleable.StateLayout_loadingExitAnim, 0).apply {
                 mLoadingExitAnim = when (this) {
                     0 -> fadeOut()
-                    1 -> slideDown()
+                    1 -> slideDown(false)
+                    2 -> slideUp(false)
+                    3 -> slideDownFadeOut()
+                    4 -> slideUpFadeOut()
                     else -> {
                         fadeOut()
                     }
@@ -130,7 +128,10 @@ class StateLayout @JvmOverloads constructor(
             getInt(R.styleable.StateLayout_errorExitAnim, 0).apply {
                 mErrorExitAnim = when (this) {
                     0 -> fadeOut()
-                    1 -> slideDown()
+                    1 -> slideDown(false)
+                    2 -> slideUp(false)
+                    3 -> slideDownFadeOut()
+                    4 -> slideUpFadeOut()
                     else -> {
                         fadeOut()
                     }
@@ -141,7 +142,10 @@ class StateLayout @JvmOverloads constructor(
             getInt(R.styleable.StateLayout_errorEnterAnim, 0).apply {
                 mErrorEnterAnim = when (this) {
                     0 -> fadeIn()
-                    1 -> slideUp()
+                    1 -> slideUp(true)
+                    2 -> slideDown(true)
+                    3 -> slideUpFadeIn()
+                    4 -> slideDownFadeIn()
                     else -> {
                         fadeIn()
                     }
@@ -152,7 +156,10 @@ class StateLayout @JvmOverloads constructor(
             getInt(R.styleable.StateLayout_noResultsEnterAnim, 0).apply {
                 mNoResultsEnterAnim = when (this) {
                     0 -> fadeIn()
-                    1 -> slideUp()
+                    1 -> slideUp(true)
+                    2 -> slideDown(true)
+                    3 -> slideUpFadeIn()
+                    4 -> slideDownFadeIn()
                     else -> {
                         fadeIn()
                     }
@@ -163,7 +170,10 @@ class StateLayout @JvmOverloads constructor(
             getInt(R.styleable.StateLayout_noResultsExitAnim, 0).apply {
                 mNoResultsExitAnim = when (this) {
                     0 -> fadeOut()
-                    1 -> slideDown()
+                    1 -> slideDown(false)
+                    2 -> slideUp(false)
+                    3 -> slideDownFadeOut()
+                    4 -> slideUpFadeOut()
                     else -> {
                         fadeOut()
                     }
@@ -225,36 +235,36 @@ class StateLayout @JvmOverloads constructor(
             runExitAnim()
             runEnterAnim()
         } else {
-            runExitAnim { runEnterAnim() }
+            if (prevState != null) {
+                runExitAnim { runEnterAnim() }
+            } else {
+                runEnterAnim()
+            }
         }
     }
 
     // Run exit animations from previous state.
     private fun runExitAnim(runAfter: () -> Unit = {}) {
-        if (prevState != null) {
-            Log.d("StateLayout", "Prev state $prevState")
-            var pair: Pair<View?, Animation?>? = null
-            when (prevState?.status) {
-                Status.Error -> {
-                    pair = mErrorView to mErrorExitAnim
-                }
-                Status.NoResults -> {
-                    pair = mNoResultsView to mNoResultsExitAnim
-                }
-                Status.Loading -> {
-                    pair = mLoadingView to mLoadingExitAnim
-                }
+        var pair: Pair<View?, Animation?>? = null
+        when (prevState?.status) {
+            Status.Error -> {
+                pair = mErrorView to mErrorExitAnim
             }
+            Status.NoResults -> {
+                pair = mNoResultsView to mNoResultsExitAnim
+            }
+            Status.Loading -> {
+                pair = mLoadingView to mLoadingExitAnim
+            }
+        }
 
-            if (pair != null) {
-                hideView(pair.first, pair.second, runAfter)
-            }
+        if (pair != null) {
+            hideView(pair.first, pair.second, runAfter)
         }
     }
 
     private fun runEnterAnim() {
-        Log.d("StateLayout", "New state $state")
-        when (state.status) {
+        when (state?.status) {
             Status.Success -> {
                 showView(mContentView, mContentEnterAnim)
             }

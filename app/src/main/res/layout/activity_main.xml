@@ -21,8 +21,9 @@
             android:layout_height="match_parent"
             app:animate="true"
             app:ordering="sequence"
-            app:contentEnterAnim="animFadeIn"
-            app:loadingExitAnim="animFadeOut"
+            app:contentEnterAnim="SlideUpFadeIn"
+            app:loadingEnterAnim="FadeIn"
+            app:loadingExitAnim="SlideUpFadeOut"
             app:stateLive="@{vm.stateLive}">
 
             <TextView
