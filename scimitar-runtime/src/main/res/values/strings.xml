@@ -1,12 +1,12 @@
 <resources>
     <string name="app_name">scimitar-runtime</string>
-    <string name="error_msg">An error occurred, please try again</string>
-    <string name="no_results">No results are available</string>
+    <string name="error_msg">An error occurred, please try again.</string>
+    <string name="no_results">No results are available.</string>
+    <string name="error_button">Try again</string>
 
     <string name="state_success">state.success</string>
     <string name="state_error">state.error</string>
     <string name="state_noResults">state.noResults</string>
     <string name="state_loading">state.loading</string>
 
-    <string name="error_button">Try again</string>
 </resources>

@@ -1,3 +1,4 @@
 <resources>
     <color name="errorButtonTextColor">@android:color/white</color>
+    <color name="errorButtonBackgroundColor">#FF4081</color>
 </resources>

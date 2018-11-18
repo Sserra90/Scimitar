@@ -24,9 +24,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:minWidth="140dp"
-            android:textColor="@color/errorButtonTextColor"
             android:text="@string/error_button"
-            app:backgroundTint="?attr/colorAccent" />
+            android:textColor="@color/errorButtonTextColor"
+            app:backgroundTint="@color/errorButtonBackgroundColor" />
 
     </LinearLayout>
 
