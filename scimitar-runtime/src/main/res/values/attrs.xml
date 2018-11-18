@@ -11,7 +11,12 @@
         <attr name="loadingSize" format="dimension" />
         <attr name="animate" format="boolean" />
 
-        <attr name="contentEnterAnim" format="enum" >
+        <attr name="ordering" format="enum">
+            <enum name="sequence" value="0" />
+            <enum name="together" value="1" />
+        </attr>
+
+        <attr name="contentEnterAnim" format="enum">
             <enum name="animFadeIn" value="0" />
             <enum name="animSlideUp" value="0" />
             <enum name="animSlideUpFadeIn" value="0" />
@@ -20,7 +25,7 @@
             <enum name="animRotateUpFadeIn" value="0" />
         </attr>
 
-        <attr name="errorEnterAnim" format="enum" >
+        <attr name="errorEnterAnim" format="enum">
             <enum name="animFadeIn" value="0" />
             <enum name="animSlideUp" value="0" />
             <enum name="animSlideUpFadeIn" value="0" />
@@ -29,31 +34,31 @@
             <enum name="animRotateUpFadeIn" value="0" />
         </attr>
 
-        <attr name="errorExitAnim" format="enum" >
+        <attr name="errorExitAnim" format="enum">
             <enum name="animFadeOut" value="0" />
             <enum name="animSlideDown" value="0" />
             <enum name="animSlideDownFadeOut" value="0" />
         </attr>
 
-        <attr name="loadingExitAnim" format="enum" >
+        <attr name="loadingExitAnim" format="enum">
             <enum name="animFadeOut" value="0" />
             <enum name="animSlideDown" value="0" />
             <enum name="animSlideDownFadeOut" value="0" />
         </attr>
 
-        <attr name="loadingEnterAnim" format="enum" >
+        <attr name="loadingEnterAnim" format="enum">
             <enum name="animFadeIn" value="0" />
             <enum name="animSlideUp" value="0" />
             <enum name="animSlideUpFadeIn" value="0" />
         </attr>
 
-        <attr name="noResultsExitAnim" format="enum" >
+        <attr name="noResultsExitAnim" format="enum">
             <enum name="animFadeOut" value="0" />
             <enum name="animSlideDown" value="0" />
             <enum name="animSlideDownFadeOut" value="0" />
         </attr>
 
-        <attr name="noResultsEnterAnim" format="enum" >
+        <attr name="noResultsEnterAnim" format="enum">
             <enum name="animFadeIn" value="0" />
             <enum name="animSlideUp" value="0" />
             <enum name="animSlideUpFadeIn" value="0" />

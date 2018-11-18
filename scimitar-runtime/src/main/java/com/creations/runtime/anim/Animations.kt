@@ -7,18 +7,18 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.ViewPropertyAnimatorListener
 import com.creations.runtime.toPx
 
+fun fadeIn(): Animation = FadeAnimation(true)
+fun fadeOut(): Animation = FadeAnimation(false)
+fun slideUp(): Animation = SlideAnimation(true)
+fun slideDown(): Animation = SlideAnimation(false)
+
 abstract class Animation(
         val duration: Long = 320,
         val interpolator: Interpolator = AccelerateDecelerateInterpolator()
 ) {
     abstract fun prepareView(target: View?)
-    abstract fun run(target: View?)
+    abstract fun run(target: View?, runAfter: () -> Unit = {})
 }
-
-fun fadeIn(): Animation = FadeAnimation(true)
-fun fadeOut(): Animation = FadeAnimation(false)
-fun slideUp(): Animation = SlideAnimation(true)
-fun slideDown(): Animation = SlideAnimation(false)
 
 private class FadeAnimation(private val fadeIn: Boolean = true) : Animation() {
 
@@ -30,7 +30,7 @@ private class FadeAnimation(private val fadeIn: Boolean = true) : Animation() {
     }
 
     @Suppress("UsePropertyAccessSyntax")
-    override fun run(target: View?) {
+    override fun run(target: View?, runAfter: () -> Unit) {
         target?.apply {
             prepareView(this)
             ViewCompat
@@ -38,6 +38,11 @@ private class FadeAnimation(private val fadeIn: Boolean = true) : Animation() {
                     .alpha(if (fadeIn) 1F else 0F)
                     .setDuration(duration)
                     .setInterpolator(interpolator)
+                    .setListener(object : SimpleListener() {
+                        override fun onAnimationEnd(view: View?) {
+                            runAfter()
+                        }
+                    })
         }
     }
 }
@@ -55,7 +60,7 @@ private class SlideAnimation(
     }
 
     @Suppress("UsePropertyAccessSyntax")
-    override fun run(target: View?) {
+    override fun run(target: View?, runAfter: () -> Unit) {
         target?.apply {
             prepareView(this)
             ViewCompat
@@ -63,6 +68,11 @@ private class SlideAnimation(
                     .yBy(if (slideUp) translateY else -translateY)
                     .setDuration(duration)
                     .setInterpolator(interpolator)
+                    .setListener(object : SimpleListener() {
+                        override fun onAnimationEnd(view: View?) {
+                            runAfter()
+                        }
+                    })
         }
     }
 }

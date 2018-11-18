@@ -15,6 +15,11 @@ import com.creations.runtime.state.State
 import com.creations.runtime.state.Status
 import kotlinx.android.synthetic.main.async_layout.view.*
 
+sealed class Ordering {
+    object Sequence : Ordering()
+    object Together : Ordering()
+}
+
 class StateLayout @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
@@ -41,6 +46,8 @@ class StateLayout @JvmOverloads constructor(
     private var mNoResultsExitAnim: Animation? = null
     private var mLoadingExitAnim: Animation? = null
     private var mErrorExitAnim: Animation? = null
+
+    private var mOrder: Ordering? = null
 
     var loadingSize: Int = 100.toPx
     var onDetachFromWindow: () -> Unit? = {}
@@ -74,6 +81,15 @@ class StateLayout @JvmOverloads constructor(
                     3 -> State(Status.Error)
                     4 -> State(Status.NoResults)
                     else -> State(Status.Loading)
+                }
+            }
+
+
+            getInt(R.styleable.StateLayout_ordering, 1).apply {
+                mOrder = when (this) {
+                    0 -> Ordering.Sequence
+                    1 -> Ordering.Together
+                    else -> Ordering.Sequence
                 }
             }
 
@@ -155,7 +171,7 @@ class StateLayout @JvmOverloads constructor(
             }
 
             loadingSize = getDimensionPixelSize(R.styleable.StateLayout_loadingSize, 100.toPx)
-            animate = getBoolean(R.styleable.StateLayout_animate, true)
+            animate = getBoolean(R.styleable.StateLayout_animate, false)
         }
 
         doOnPreDraw {
@@ -192,9 +208,9 @@ class StateLayout @JvmOverloads constructor(
         }
     }
 
-    private fun hideView(view: View?, anim: Animation?) {
+    private fun hideView(view: View?, anim: Animation?, runAfter: () -> Unit = {}) {
         if (animate && anim != null) {
-            anim.run(view)
+            anim.run(view, runAfter)
         } else {
             hide(view)
         }
@@ -202,22 +218,41 @@ class StateLayout @JvmOverloads constructor(
 
     private fun updateState() {
 
-        // Run exit animations from previous state.
+        Log.d("StateLayout", "Prev state $prevState")
+        Log.d("StateLayout", "New state $state")
+
+        if (mOrder is Ordering.Together) {
+            runExitAnim()
+            runEnterAnim()
+        } else {
+            runExitAnim { runEnterAnim() }
+        }
+    }
+
+    // Run exit animations from previous state.
+    private fun runExitAnim(runAfter: () -> Unit = {}) {
         if (prevState != null) {
             Log.d("StateLayout", "Prev state $prevState")
+            var pair: Pair<View?, Animation?>? = null
             when (prevState?.status) {
                 Status.Error -> {
-                    hideView(mErrorView, mErrorExitAnim)
+                    pair = mErrorView to mErrorExitAnim
                 }
                 Status.NoResults -> {
-                    hideView(mNoResultsView, mNoResultsExitAnim)
+                    pair = mNoResultsView to mNoResultsExitAnim
                 }
                 Status.Loading -> {
-                    hideView(mLoadingView, mLoadingExitAnim)
+                    pair = mLoadingView to mLoadingExitAnim
                 }
             }
-        }
 
+            if (pair != null) {
+                hideView(pair.first, pair.second, runAfter)
+            }
+        }
+    }
+
+    private fun runEnterAnim() {
         Log.d("StateLayout", "New state $state")
         when (state.status) {
             Status.Success -> {
