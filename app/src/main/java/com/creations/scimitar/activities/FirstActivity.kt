@@ -26,7 +26,6 @@ open class FirstActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         scimitar()
-
         Log.d(TAG, "Vm injected: $vm")
     }
 

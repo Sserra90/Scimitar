@@ -88,7 +88,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     }
 
     private void warning(String msg) {
-        mMessager.printMessage(Diagnostic.Kind.NOTE, msg);
+        mMessager.printMessage(Diagnostic.Kind.WARNING, msg);
     }
 
     @Override
@@ -186,7 +186,12 @@ public class ScimitarProcessor extends AbstractProcessor {
 
         // Parse superclasses recursively
         for (TypeElement el : bindingsMap.keySet()) {
-            findParent(el, bindingsMap.get(el).getViewModelBindings(), bindingsMap);
+            findParent(
+                    el,
+                    bindingsMap.get(el).getViewModelBindings(),
+                    bindingsMap.get(el).getObserverBindings(),
+                    bindingsMap
+            );
         }
 
         print(bindingsMap, factoriesMap);
@@ -492,6 +497,7 @@ public class ScimitarProcessor extends AbstractProcessor {
 
     private void findParent(TypeElement type,
                             Set<AnnotatedElement> elements,
+                            Set<AnnotatedElement> resourceObservers,
                             Map<TypeElement, BindingsSet> bindingsMap) {
 
         TypeMirror typeMirror = type.getSuperclass();
@@ -504,11 +510,19 @@ public class ScimitarProcessor extends AbstractProcessor {
                 ? bindingsMap.get(parentType).getViewModelBindings()
                 : null;
 
+        Set<AnnotatedElement> parentResourceObserversElements = bindingsMap.containsKey(parentType)
+                ? bindingsMap.get(parentType).getObserverBindings()
+                : null;
+
         if (parentElements != null) {
             elements.addAll(parentElements);
         }
 
-        findParent(parentType, elements, bindingsMap);
+        if (parentResourceObserversElements != null) {
+            resourceObservers.addAll(parentResourceObserversElements);
+        }
+
+        findParent(parentType, elements, resourceObservers, bindingsMap);
     }
 
     private void generateClasses(final Map<TypeElement, BindingsSet> bindingsMap) {

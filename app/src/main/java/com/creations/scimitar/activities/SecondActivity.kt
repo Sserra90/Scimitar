@@ -6,6 +6,9 @@ import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.R
 import com.creations.scimitar.vm.SecondViewModel
 import com.creations.annotations.BindViewModel
+import com.creations.annotations.ResourceObserver
+import com.creations.runtime.state.StateObserver
+import com.creations.scimitar.entities.Repo
 
 open class SecondActivity : FirstActivity() {
 
@@ -19,11 +22,15 @@ open class SecondActivity : FirstActivity() {
     @BindViewModel
     lateinit var secondVm: SecondViewModel
 
+    @ResourceObserver(id = "repos")
+    lateinit var reposObs: StateObserver<List<Repo>>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         //Scimitar.bind(this)
+        reposObs.onLoading()
 
         Log.d(TAG,"Vm injected: $vm")
     }

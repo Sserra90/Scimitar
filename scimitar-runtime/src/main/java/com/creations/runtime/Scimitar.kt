@@ -19,20 +19,15 @@ private object Scimitar {
         try {
             val c = Class.forName(target.javaClass.canonicalName!! + SCIMITAR_SUFFIX)
             c.getDeclaredConstructor(target.javaClass).newInstance(target)
-            logd("Found class $c")
         } catch (e: ClassNotFoundException) {
-            loge("Error: $e")
             e.printStackTrace()
         } catch (e: IllegalAccessException) {
-            loge("Error: $e")
             e.printStackTrace()
         } catch (e: InstantiationException) {
             e.printStackTrace()
         } catch (e: NoSuchMethodException) {
-            loge("Error: $e")
             e.printStackTrace()
         } catch (e: InvocationTargetException) {
-            loge("Error: $e")
             e.printStackTrace()
         }
 
@@ -42,21 +37,15 @@ private object Scimitar {
         try {
             val c = Class.forName(target.javaClass.canonicalName!! + SCIMITAR_SUFFIX)
             c.getDeclaredConstructor(target.javaClass).newInstance(target)
-            logd("Found class $c")
         } catch (e: ClassNotFoundException) {
-            loge("Error: $e")
             e.printStackTrace()
         } catch (e: IllegalAccessException) {
-            loge("Error: $e")
             e.printStackTrace()
         } catch (e: InstantiationException) {
-            loge("Error: $e")
             e.printStackTrace()
         } catch (e: NoSuchMethodException) {
-            loge("Error: $e")
             e.printStackTrace()
         } catch (e: InvocationTargetException) {
-            loge("Error: $e")
             e.printStackTrace()
         }
 
