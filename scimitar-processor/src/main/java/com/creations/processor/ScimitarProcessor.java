@@ -88,7 +88,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     }
 
     private void warning(String msg) {
-        mMessager.printMessage(Diagnostic.Kind.WARNING, msg);
+        mMessager.printMessage(Diagnostic.Kind.NOTE, msg);
     }
 
     @Override
@@ -190,6 +190,7 @@ public class ScimitarProcessor extends AbstractProcessor {
                     el,
                     bindingsMap.get(el).getViewModelBindings(),
                     bindingsMap.get(el).getObserverBindings(),
+                    bindingsMap.get(el).getMethodBindings(),
                     bindingsMap
             );
         }
@@ -498,6 +499,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     private void findParent(TypeElement type,
                             Set<AnnotatedElement> elements,
                             Set<AnnotatedElement> resourceObservers,
+                            Map<String, MethodsSet> methodsSet,
                             Map<TypeElement, BindingsSet> bindingsMap) {
 
         TypeMirror typeMirror = type.getSuperclass();
@@ -522,7 +524,11 @@ public class ScimitarProcessor extends AbstractProcessor {
             resourceObservers.addAll(parentResourceObserversElements);
         }
 
-        findParent(parentType, elements, resourceObservers, bindingsMap);
+        if (bindingsMap.containsKey(parentType) && bindingsMap.get(parentType).getMethodBindings() != null) {
+            methodsSet.putAll(bindingsMap.get(parentType).getMethodBindings());
+        }
+
+        findParent(parentType, elements, resourceObservers, methodsSet, bindingsMap);
     }
 
     private void generateClasses(final Map<TypeElement, BindingsSet> bindingsMap) {

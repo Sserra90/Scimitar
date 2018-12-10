@@ -22,7 +22,7 @@ open class SecondActivity : FirstActivity() {
     @BindViewModel
     lateinit var secondVm: SecondViewModel
 
-    @ResourceObserver(id = "repos")
+    @ResourceObserver(id = "getRepos")
     lateinit var reposObs: StateObserver<List<Repo>>
 
     override fun onCreate(savedInstanceState: Bundle?) {

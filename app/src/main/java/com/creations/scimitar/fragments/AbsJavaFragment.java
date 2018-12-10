@@ -17,5 +17,18 @@ import androidx.fragment.app.Fragment;
 
 public abstract class AbsJavaFragment extends Fragment {
 
+    @ResourceObserver(id = "getUser")
+    StateObserver<User> observer;
 
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        ScimitarKt.scimitar(this);
+        return super.onCreateView(inflater, container, savedInstanceState);
+    }
+
+    @OnSuccess(id = "getUser")
+    public void renderUser(User user) {
+
+    }
 }

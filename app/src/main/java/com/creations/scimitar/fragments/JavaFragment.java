@@ -5,18 +5,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.creations.annotations.BindViewModel;
 import com.creations.annotations.OnSuccess;
-import com.creations.annotations.ResourceObserver;
-import com.creations.runtime.ScimitarKt;
-import com.creations.runtime.state.State;
-import com.creations.runtime.state.StateObserver;
 import com.creations.scimitar.entities.User;
+import com.creations.scimitar.vm.SecondViewModel;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-
-import static com.creations.runtime.state.StateKt.success;
 
 public class JavaFragment extends AbsJavaFragment {
 
@@ -27,17 +22,13 @@ public class JavaFragment extends AbsJavaFragment {
         return fragment;
     }
 
-    @ResourceObserver(id = "user")
-    protected StateObserver<User> observer;
+    @BindViewModel
+    SecondViewModel secondViewModel;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        ScimitarKt.scimitar(this);
         observer.onSuccess(new User(1));
         return super.onCreateView(inflater, container, savedInstanceState);
     }
-
-    @OnSuccess(id = "user")
-    public void renderUser(User user) { }
 }
