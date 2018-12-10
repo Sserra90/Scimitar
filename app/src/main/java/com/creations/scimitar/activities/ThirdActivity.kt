@@ -10,6 +10,7 @@ import com.creations.scimitar.R
 import com.creations.scimitar.databinding.ActivityMainBinding
 import com.creations.scimitar.entities.Repo
 import com.creations.scimitar.entities.User
+import com.creations.scimitar.fragments.JavaFragment
 import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.vm.ScimitarViewModelFactory
 import kotlinx.android.synthetic.main.activity_main.*
@@ -38,9 +39,15 @@ class ThirdActivity : SecondActivity() {
         factory = ScimitarViewModelFactory()
         super.onCreate(savedInstanceState)
 
-        db = DataBindingUtil.setContentView(this, R.layout.activity_main)
-        db.setLifecycleOwner(this)
-        db.vm = vm
+        supportFragmentManager
+                .beginTransaction()
+                .replace(android.R.id.content, JavaFragment.newInstance())
+                .commit()
+
+        //db = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        //db.setLifecycleOwner(this)
+        //db.vm = vm
+
 
         /*
         stateView.apply {

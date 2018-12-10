@@ -15,7 +15,7 @@
         tools:replace="android:appComponentFactory"
         tools:targetApi="28">
 
-        <activity android:name=".activities.ThirdActivity">
+        <activity android:name=".activities.JavaActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
