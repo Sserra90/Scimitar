@@ -26,13 +26,13 @@ open class FirstFragment : Fragment() {
 
 class SecondFragment : FirstFragment() {
 
-    @BindViewModel
+    @ViewModel
     lateinit var thirdVm: MyViewModel
 
     @ViewModelFactory
     lateinit var factory: ScimitarViewModelFactory
 
-    @ResourceObserver(id = "users")
+    @BindObserver(id = "users")
     lateinit var usersObserver: StateObserver<User>
 
     @OnSuccess(id = "users")

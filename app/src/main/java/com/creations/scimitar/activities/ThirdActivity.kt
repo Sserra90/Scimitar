@@ -2,11 +2,8 @@ package com.creations.scimitar.activities
 
 import android.os.Bundle
 import android.util.Log
-import android.view.View
-import androidx.databinding.DataBindingUtil
 import com.creations.annotations.*
 import com.creations.runtime.state.*
-import com.creations.scimitar.R
 import com.creations.scimitar.databinding.ActivityMainBinding
 import com.creations.scimitar.entities.Repo
 import com.creations.scimitar.entities.User
@@ -21,16 +18,16 @@ class ThirdActivity : SecondActivity() {
         const val TAG = "ThirdActivity"
     }
 
-    @BindViewModel
+    @ViewModel
     lateinit var thirdVm: MyViewModel
 
     @ViewModelFactory
     lateinit var factory: ScimitarViewModelFactory
 
-    @ResourceObserver(id = "users")
+    @BindObserver(id = "users")
     lateinit var usersObserver: StateObserver<User>
 
-    @ResourceObserver(id = "repos")
+    @BindObserver(id = "repos")
     lateinit var reposObserver: StateObserver<List<Repo>>
 
     private lateinit var db: ActivityMainBinding

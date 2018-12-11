@@ -9,7 +9,7 @@ public class ViewModelAnnotatedElement extends AnnotatedElement {
     }
 
     // Just using an hack to get the Class type
-    /*private static TypeMirror getValue(BindViewModel annotation) {
+    /*private static TypeMirror getValue(ViewModel annotation) {
         try {
             annotation.value();
         } catch (MirroredTypeException mte) {
