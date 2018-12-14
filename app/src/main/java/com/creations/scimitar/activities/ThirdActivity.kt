@@ -2,8 +2,10 @@ package com.creations.scimitar.activities
 
 import android.os.Bundle
 import android.util.Log
+import androidx.databinding.DataBindingUtil
 import com.creations.annotations.*
 import com.creations.runtime.state.*
+import com.creations.scimitar.R
 import com.creations.scimitar.databinding.ActivityMainBinding
 import com.creations.scimitar.entities.Repo
 import com.creations.scimitar.entities.User
@@ -36,14 +38,14 @@ class ThirdActivity : SecondActivity() {
         factory = ScimitarViewModelFactory()
         super.onCreate(savedInstanceState)
 
-        supportFragmentManager
+        /*supportFragmentManager
                 .beginTransaction()
                 .replace(android.R.id.content, JavaFragment.newInstance())
-                .commit()
+                .commit()*/
 
-        //db = DataBindingUtil.setContentView(this, R.layout.activity_main)
-        //db.setLifecycleOwner(this)
-        //db.vm = vm
+        db = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        db.setLifecycleOwner(this)
+        db.vm = vm
 
 
         /*
@@ -73,7 +75,7 @@ class ThirdActivity : SecondActivity() {
     @OnError(id = "users")
     fun renderError(error: StateError) {
         Log.d(TAG, "Show error $error")
-        stateView.state = error()
+        stateView.state = error(error)
     }
 
     @OnLoading(id = "users")

@@ -5,11 +5,9 @@ import androidx.databinding.ObservableField
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.creations.runtime.state.*
 import com.creations.scimitar.entities.User
-import com.creations.runtime.state.State
-import com.creations.runtime.state.Status
-import com.creations.runtime.state.error
-import com.creations.runtime.state.loading
+import java.lang.RuntimeException
 import java.util.concurrent.TimeUnit
 
 class MyViewModel : ViewModel() {
@@ -23,8 +21,7 @@ class MyViewModel : ViewModel() {
         Handler().postDelayed(
                 {
                     //stateLive.value = State(User(1), Status.Success)
-                    stateLive.value = error()
-
+                    stateLive.value = error(StateError(RuntimeException()))
                 },
                 TimeUnit.SECONDS.toMillis(3)
         )

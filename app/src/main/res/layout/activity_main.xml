@@ -21,7 +21,7 @@
             android:layout_height="match_parent"
             app:animate="true"
             app:contentEnterAnim="SlideUpFadeIn"
-            app:errorEnterAnim="SlideUpFadeIn"
+            app:errorEnterAnim="FadeIn"
             app:errorExitAnim="FadeOut"
             app:errorListener="@{(view)->vm.getUsers()}"
             app:loadingEnterAnim="FadeIn"
@@ -33,7 +33,21 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="Scimitar" />
+                android:tag="@string/state_success"
+                android:text="Scimitar"
+                android:visibility="gone" />
+
+            <!-->
+            <com.creations.runtime.views.ErrorView
+                android:id="@+id/error"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:tag="@string/state_error"
+                android:visibility="gone"
+                app:buttonText="@string/error_button"
+                app:errorIcon="@drawable/error_icon"
+                app:errorMsg="@string/error_msg" />-->
 
         </com.creations.runtime.views.StateLayout>
 
