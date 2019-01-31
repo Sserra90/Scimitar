@@ -74,4 +74,10 @@
 
     </declare-styleable>
 
+    <declare-styleable name="ErrorView">
+        <attr name="errorMsg" format="reference"/>
+        <attr name="errorIcon" format="reference"/>
+        <attr name="buttonText" format="reference"/>
+    </declare-styleable>
+
 </resources>

@@ -84,7 +84,7 @@ class StateLayout @JvmOverloads constructor(
     init {
         inflate(R.layout.async_layout)
 
-        readAttrs(attrs) {
+        readAttrs(R.styleable.StateLayout, attrs) {
             getInt(R.styleable.StateLayout_ordering, 1).apply {
                 order = when (this) {
                     0 -> Ordering.Sequence

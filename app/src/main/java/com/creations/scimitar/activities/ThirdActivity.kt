@@ -2,7 +2,6 @@ package com.creations.scimitar.activities
 
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import androidx.databinding.DataBindingUtil
 import com.creations.annotations.*
 import com.creations.runtime.state.*
@@ -10,6 +9,7 @@ import com.creations.scimitar.R
 import com.creations.scimitar.databinding.ActivityMainBinding
 import com.creations.scimitar.entities.Repo
 import com.creations.scimitar.entities.User
+import com.creations.scimitar.fragments.JavaFragment
 import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.vm.ScimitarViewModelFactory
 import kotlinx.android.synthetic.main.activity_main.*
@@ -20,16 +20,16 @@ class ThirdActivity : SecondActivity() {
         const val TAG = "ThirdActivity"
     }
 
-    @BindViewModel
+    @ViewModel
     lateinit var thirdVm: MyViewModel
 
     @ViewModelFactory
     lateinit var factory: ScimitarViewModelFactory
 
-    @ResourceObserver(id = "users")
+    @BindObserver(id = "users")
     lateinit var usersObserver: StateObserver<User>
 
-    @ResourceObserver(id = "repos")
+    @BindObserver(id = "repos")
     lateinit var reposObserver: StateObserver<List<Repo>>
 
     private lateinit var db: ActivityMainBinding
@@ -38,9 +38,15 @@ class ThirdActivity : SecondActivity() {
         factory = ScimitarViewModelFactory()
         super.onCreate(savedInstanceState)
 
+        /*supportFragmentManager
+                .beginTransaction()
+                .replace(android.R.id.content, JavaFragment.newInstance())
+                .commit()*/
+
         db = DataBindingUtil.setContentView(this, R.layout.activity_main)
         db.setLifecycleOwner(this)
         db.vm = vm
+
 
         /*
         stateView.apply {
@@ -69,7 +75,7 @@ class ThirdActivity : SecondActivity() {
     @OnError(id = "users")
     fun renderError(error: StateError) {
         Log.d(TAG, "Show error $error")
-        stateView.state = error()
+        stateView.state = error(error)
     }
 
     @OnLoading(id = "users")

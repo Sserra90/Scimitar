@@ -1,6 +1,6 @@
 package com.creations.processor.elements;
 
-import com.creations.annotations.ResourceObserver;
+import com.creations.annotations.BindObserver;
 
 import java.util.Objects;
 
@@ -15,7 +15,7 @@ public class ResourceAnnotatedElement extends AnnotatedElement {
 
     public ResourceAnnotatedElement(Element element) {
         super(element);
-        id = getElement().getAnnotation(ResourceObserver.class).id();
+        id = getElement().getAnnotation(BindObserver.class).id();
         type = ((DeclaredType) getElement().asType()).getTypeArguments().get(0);
     }
 

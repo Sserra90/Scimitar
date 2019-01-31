@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Scimitar</string>
+    <string name="error_msg">Error</string>
+    <string name="error_button">Try again</string>
 </resources>

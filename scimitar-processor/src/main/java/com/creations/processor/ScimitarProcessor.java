@@ -1,11 +1,11 @@
 package com.creations.processor;
 
-import com.creations.annotations.BindViewModel;
+import com.creations.annotations.ViewModel;
 import com.creations.annotations.OnError;
 import com.creations.annotations.OnLoading;
 import com.creations.annotations.OnNoResults;
 import com.creations.annotations.OnSuccess;
-import com.creations.annotations.ResourceObserver;
+import com.creations.annotations.BindObserver;
 import com.creations.annotations.ViewModelFactory;
 import com.creations.processor.elements.AnnotatedElement;
 import com.creations.processor.elements.FactoryAnnotatedElement;
@@ -126,7 +126,7 @@ public class ScimitarProcessor extends AbstractProcessor {
     @Override
     public Set<String> getSupportedAnnotationTypes() {
         Set<String> types = new HashSet<>();
-        types.add(BindViewModel.class.getCanonicalName());
+        types.add(ViewModel.class.getCanonicalName());
         return Collections.unmodifiableSet(types);
     }
 
@@ -140,8 +140,8 @@ public class ScimitarProcessor extends AbstractProcessor {
 
         final Map<TypeElement, BindingsSet> bindingsMap = new HashMap<>();
 
-        // Parse @BindViewModel annotated fields
-        Set<VariableElement> fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(BindViewModel.class));
+        // Parse @ViewModel annotated fields
+        Set<VariableElement> fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(ViewModel.class));
         for (VariableElement field : fields) {
             parseBindViewModel(field, bindingsMap);
         }
@@ -154,8 +154,8 @@ public class ScimitarProcessor extends AbstractProcessor {
         }
         bindingsMap.values().forEach(bindingsSet -> bindingsSet.putFactoriesMap(factoriesMap));
 
-        // Parse @ResourceObserver annotated fields
-        fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(ResourceObserver.class));
+        // Parse @BindObserver annotated fields
+        fields = ElementFilter.fieldsIn(env.getElementsAnnotatedWith(BindObserver.class));
         for (VariableElement field : fields) {
             parseResourceObserver(field, bindingsMap);
         }
@@ -186,7 +186,13 @@ public class ScimitarProcessor extends AbstractProcessor {
 
         // Parse superclasses recursively
         for (TypeElement el : bindingsMap.keySet()) {
-            findParent(el, bindingsMap.get(el).getViewModelBindings(), bindingsMap);
+            findParent(
+                    el,
+                    bindingsMap.get(el).getViewModelBindings(),
+                    bindingsMap.get(el).getObserverBindings(),
+                    bindingsMap.get(el).getMethodBindings(),
+                    bindingsMap
+            );
         }
 
         print(bindingsMap, factoriesMap);
@@ -199,7 +205,7 @@ public class ScimitarProcessor extends AbstractProcessor {
 
     private void parseBindViewModel(VariableElement field, Map<TypeElement, BindingsSet> bindingsMap) {
         warning("\nParse view model: " + field);
-        if (checkFieldAccessible(BindViewModel.class, field)) {
+        if (checkFieldAccessible(ViewModel.class, field)) {
 
             final AnnotatedElement el = new ViewModelAnnotatedElement(field);
 
@@ -237,7 +243,7 @@ public class ScimitarProcessor extends AbstractProcessor {
 
     private void parseResourceObserver(VariableElement field, Map<TypeElement, BindingsSet> bindingsMap) {
         warning("\nParse resource observer: " + field);
-        if (checkFieldAccessible(ResourceObserver.class, field)) {
+        if (checkFieldAccessible(BindObserver.class, field)) {
             final ResourceAnnotatedElement el = new ResourceAnnotatedElement(field);
 
             if (!bindingsMap.containsKey(el.getEnclosingElement())) {
@@ -267,20 +273,20 @@ public class ScimitarProcessor extends AbstractProcessor {
             return;
         }
 
-        // Check class has @ResourceObserver annotated fields
+        // Check class has @BindObserver annotated fields
         if (bindingsMap.containsKey(enclosing) && bindingsMap.get(enclosing).getObserverBindings().isEmpty()) {
-            error(String.format("No @ResourceObserver annotated fields were found in class: %s", enclosing));
+            error(String.format("No @BindObserver annotated fields were found in class: %s", enclosing));
             return;
         }
 
-        // Find @ResourceObserver annotated field with the same id
+        // Find @BindObserver annotated field with the same id
         final List<AnnotatedElement> resObservers = findResourceObserversForId(
                 bindingsMap.get(enclosing).getObserverBindings(),
                 methodEl.getId()
         );
 
         if (resObservers.isEmpty()) {
-            error(String.format("No @ResourceObserver annotated fields were found in class: %s " +
+            error(String.format("No @BindObserver annotated fields were found in class: %s " +
                     "for id: %s", enclosing, methodEl.getId())
             );
             return;
@@ -387,20 +393,20 @@ public class ScimitarProcessor extends AbstractProcessor {
             return false;
         }
 
-        // Check class has @ResourceObserver annotated fields
+        // Check class has @BindObserver annotated fields
         if (bindingsMap.containsKey(enclosing) && bindingsMap.get(enclosing).getObserverBindings().isEmpty()) {
-            error(String.format("No @ResourceObserver annotated fields were found in class: %s", enclosing));
+            error(String.format("No @BindObserver annotated fields were found in class: %s", enclosing));
             return false;
         }
 
-        // Find @ResourceObserver annotated field with the same id
+        // Find @BindObserver annotated field with the same id
         final List<AnnotatedElement> resObservers = findResourceObserversForId(
                 bindingsMap.get(enclosing).getObserverBindings(),
                 methodEl.getId()
         );
 
         if (resObservers.isEmpty()) {
-            error(String.format("No @ResourceObserver annotated fields were found in class: %s " +
+            error(String.format("No @BindObserver annotated fields were found in class: %s " +
                     "for id: %s", enclosing, methodEl.getId())
             );
             return false;
@@ -492,6 +498,8 @@ public class ScimitarProcessor extends AbstractProcessor {
 
     private void findParent(TypeElement type,
                             Set<AnnotatedElement> elements,
+                            Set<AnnotatedElement> resourceObservers,
+                            Map<String, MethodsSet> methodsSet,
                             Map<TypeElement, BindingsSet> bindingsMap) {
 
         TypeMirror typeMirror = type.getSuperclass();
@@ -504,11 +512,23 @@ public class ScimitarProcessor extends AbstractProcessor {
                 ? bindingsMap.get(parentType).getViewModelBindings()
                 : null;
 
+        Set<AnnotatedElement> parentResourceObserversElements = bindingsMap.containsKey(parentType)
+                ? bindingsMap.get(parentType).getObserverBindings()
+                : null;
+
         if (parentElements != null) {
             elements.addAll(parentElements);
         }
 
-        findParent(parentType, elements, bindingsMap);
+        if (parentResourceObserversElements != null) {
+            resourceObservers.addAll(parentResourceObserversElements);
+        }
+
+        if (bindingsMap.containsKey(parentType) && bindingsMap.get(parentType).getMethodBindings() != null) {
+            methodsSet.putAll(bindingsMap.get(parentType).getMethodBindings());
+        }
+
+        findParent(parentType, elements, resourceObservers, methodsSet, bindingsMap);
     }
 
     private void generateClasses(final Map<TypeElement, BindingsSet> bindingsMap) {

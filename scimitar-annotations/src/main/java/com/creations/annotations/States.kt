@@ -19,4 +19,4 @@ annotation class OnNoResults(val id: String = "")
 
 @Target(AnnotationTarget.FIELD)
 @kotlin.annotation.Retention
-annotation class ResourceObserver(val id: String = "")
+annotation class BindObserver(val id: String = "")

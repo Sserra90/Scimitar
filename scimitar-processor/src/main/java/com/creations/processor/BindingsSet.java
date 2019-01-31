@@ -116,7 +116,7 @@ public class BindingsSet {
 
         observerBindings.forEach(observer -> {
             final String id = ((ResourceAnnotatedElement) observer).getId();
-            if (methodBindings.containsKey(id)) {
+            //if (methodBindings.containsKey(id)) {
                 TypeSpec stateObserverSpec = createResourceObserverType(id, methodBindings.get(id));
                 if (stateObserverSpec != null) {
                     builder.addStatement("$L.$L = $L",
@@ -125,7 +125,7 @@ public class BindingsSet {
                             stateObserverSpec
                     );
                 }
-            }
+            //}
         });
 
         return builder.build();
@@ -193,6 +193,10 @@ public class BindingsSet {
         final TypeSpec.Builder stateObserverBuilder = TypeSpec
                 .anonymousClassBuilder("")
                 .superclass(ParameterizedTypeName.get(STATE_OBSERVER_TYPE, stateTypeParam));
+
+        if (methodsSet == null){
+            return stateObserverBuilder.build();
+        }
 
         if (methodsSet.success() != null) {
             stateObserverBuilder.addMethod(

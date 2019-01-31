@@ -50,9 +50,9 @@ inline fun <T : View> T.doOnPreDraw(crossinline action: (view: T) -> Unit) {
     })
 }
 
-fun View.readAttrs(attrs: AttributeSet?, action: TypedArray.() -> Unit) {
+fun View.readAttrs(styleable: IntArray, attrs: AttributeSet?, action: TypedArray.() -> Unit) {
     attrs?.apply {
-        context.obtainStyledAttributes(this, R.styleable.StateLayout).apply {
+        context.obtainStyledAttributes(this, styleable).apply {
             action()
             recycle()
         }

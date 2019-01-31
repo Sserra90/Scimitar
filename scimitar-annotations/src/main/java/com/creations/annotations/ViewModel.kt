@@ -3,13 +3,13 @@ package com.creations.annotations
 /**
  * Bind a field to the specified ViewModel class
  * <pre>`
- * @BindViewModel(SomeViewModel.class) BindViewModel vm;
- * @BindViewModel() BindViewModel vm;
+ * @ViewModel(SomeViewModel.class) ViewModel vm;
+ * @ViewModel() ViewModel vm;
 `</pre> *
  */
 @Target(AnnotationTarget.FIELD)
 @kotlin.annotation.Retention
-annotation class BindViewModel
+annotation class ViewModel
 
 @Target(AnnotationTarget.FIELD)
 @kotlin.annotation.Retention
