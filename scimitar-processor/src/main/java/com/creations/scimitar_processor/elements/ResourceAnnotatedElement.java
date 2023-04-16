@@ -4,7 +4,6 @@ import com.creations.scimitar_annotations.state.ResourceObserver;
 
 import java.util.Objects;
 
-import javax.annotation.Nonnull;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;

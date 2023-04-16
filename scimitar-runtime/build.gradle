@@ -1,15 +1,18 @@
-apply plugin: 'com.android.library'
-apply plugin: 'com.github.dcendents.android-maven'
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
 
 // Jitpack group
 group = 'com.github.Sserra90.scimitar'
 
 android {
-    compileSdkVersion 28
+    namespace "com.creations.scimitar_runtime"
+    compileSdkVersion 33
 
     defaultConfig {
         minSdkVersion 16
-        targetSdkVersion 28
+        targetSdkVersion 33
         versionCode 1
         versionName "1.0"
 
@@ -20,21 +23,26 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11.toString()
+    }
 }
 
 ext {
-    livedata = "2.0.0"
-    appCompat = "1.0.0"
-    junit = "4.12"
+    livedata = "2.6.1"
+    appCompat = "1.6.1"
+    junit = "4.13.2"
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-
     api project(":scimitar-annotations")
     implementation "androidx.appcompat:appcompat:$appCompat"
     implementation "androidx.lifecycle:lifecycle-livedata-core:$livedata"
