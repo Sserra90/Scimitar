@@ -1,4 +1,5 @@
 apply plugin: 'java-library'
+apply plugin: "maven-publish"
 
 // Jitpack group
 group = 'com.github.Sserra90.scimitar'
