@@ -1,1 +1,23 @@
-include ':app', ':scimitar-annotations', ':scimitar-processor', ':scimitar-runtime'
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+        mavenLocal()
+        maven { url "https://jitpack.io" }
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        mavenLocal()
+        maven { url "https://jitpack.io" }
+    }
+}
+
+include ':app'
+include ':scimitar-annotations'
+include ':scimitar-processor'
+include ':scimitar-runtime'

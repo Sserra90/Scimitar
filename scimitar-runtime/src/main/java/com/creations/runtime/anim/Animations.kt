@@ -56,7 +56,6 @@ private class FadeAnimation(private val fadeIn: Boolean = true) : Animation() {
         }
     }
 
-    @Suppress("UsePropertyAccessSyntax")
     override fun run(target: View?, runAfter: (() -> Unit)?) {
         target?.apply {
             prepareView(this)
@@ -66,8 +65,8 @@ private class FadeAnimation(private val fadeIn: Boolean = true) : Animation() {
                     .setDuration(duration)
                     .setInterpolator(interpolator)
                     .setListener(object : SimpleListener() {
-                        override fun onAnimationEnd(view: View?) {
-                            view?.visibility = if (fadeIn) View.VISIBLE else View.GONE
+                        override fun onAnimationEnd(view: View) {
+                            view.visibility = if (fadeIn) View.VISIBLE else View.GONE
                             runAfter?.invoke()
                         }
                     })
@@ -81,7 +80,6 @@ private class SlideAnimation(
         private val translateY: Float
 ) : Animation() {
 
-    @Suppress("UsePropertyAccessSyntax")
     override fun run(target: View?, runAfter: (() -> Unit)?) {
         target?.apply {
             visibility = View.VISIBLE
@@ -91,9 +89,9 @@ private class SlideAnimation(
                     .setDuration(duration)
                     .setInterpolator(interpolator)
                     .setListener(object : SimpleListener() {
-                        override fun onAnimationEnd(view: View?) {
+                        override fun onAnimationEnd(view: View) {
                             if (!enter) {
-                                view?.apply {
+                                view.apply {
                                     visibility = View.GONE
                                     // Reset state
                                     view.y += if (slideUp) translateY else -translateY
@@ -133,9 +131,9 @@ private class SlideFadeAnimation(
                     .setDuration(duration)
                     .setInterpolator(interpolator)
                     .setListener(object : SimpleListener() {
-                        override fun onAnimationEnd(view: View?) {
+                        override fun onAnimationEnd(view: View) {
                             if (!fadeIn) {
-                                view?.apply {
+                                view.apply {
                                     visibility = View.GONE
                                     // Reset state
                                     view.y += if (slideUp) translateY else -translateY
@@ -149,9 +147,9 @@ private class SlideFadeAnimation(
 }
 
 abstract class SimpleListener : ViewPropertyAnimatorListener {
-    override fun onAnimationEnd(view: View?) {}
+    override fun onAnimationEnd(view: View) {}
 
-    override fun onAnimationCancel(view: View?) {}
+    override fun onAnimationCancel(view: View) {}
 
-    override fun onAnimationStart(view: View?) {}
+    override fun onAnimationStart(view: View) {}
 }
