@@ -8,14 +8,6 @@ apply from: "${rootDir}/tools/publish.gradle"
 // Jitpack group
 group = 'com.github.Sserra90.scimitar'
 
-def buildVersionName = { ->
-    if (project.hasProperty('version')) {
-        return project.getProperty('version')
-    } else {
-        return '1.0'
-    }
-}
-
 android {
     namespace "com.creations.scimitar_runtime"
     compileSdkVersion 33
@@ -24,7 +16,7 @@ android {
         minSdkVersion 16
         targetSdkVersion 33
         versionCode 1
-        versionName buildVersionName()
+        versionName "1.0"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
