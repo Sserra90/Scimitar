@@ -1,5 +1,6 @@
 apply plugin: 'java-library'
-apply plugin: "maven-publish"
+
+apply from: "${rootDir}/tools/publish.gradle"
 
 // Jitpack group
 group = 'com.github.Sserra90.scimitar'

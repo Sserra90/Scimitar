@@ -1,8 +1,9 @@
 plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
-    id "maven-publish"
 }
+
+apply from: "${rootDir}/tools/publish.gradle"
 
 // Jitpack group
 group = 'com.github.Sserra90.scimitar'
