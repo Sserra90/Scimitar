@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.library'
-    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
 }
 
 apply from: "${rootDir}/tools/publish.gradle"
@@ -9,7 +10,7 @@ apply from: "${rootDir}/tools/publish.gradle"
 group = 'com.github.Sserra90.scimitar'
 
 android {
-    namespace "com.creations.scimitar_runtime"
+    namespace "com.creations.runtime"
     compileSdkVersion 33
 
     defaultConfig {
@@ -17,9 +18,12 @@ android {
         targetSdkVersion 33
         versionCode 1
         versionName "1.0"
-
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles 'proguard-rules.pro'
+    }
 
+    dataBinding {
+        enabled true
     }
 
     buildTypes {
@@ -46,8 +50,10 @@ ext {
 
 dependencies {
     api project(":scimitar-annotations")
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation "androidx.appcompat:appcompat:$appCompat"
-    implementation "androidx.lifecycle:lifecycle-livedata-core:$livedata"
+    //implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
 
     testImplementation "junit:junit:$junit"
 }

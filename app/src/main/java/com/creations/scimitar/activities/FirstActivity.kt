@@ -6,9 +6,9 @@ import androidx.appcompat.app.AppCompatActivity
 import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.R
 import com.creations.scimitar.vm.ScimitarViewModelFactory
-import com.creations.scimitar_annotations.BindViewModel
-import com.creations.scimitar_annotations.ViewModelFactory
-import com.creations.scimitar_runtime.Scimitar
+import com.creations.annotations.ViewModel
+import com.creations.annotations.ViewModelFactory
+import com.creations.runtime.scimitar
 
 open class FirstActivity : AppCompatActivity() {
 
@@ -16,7 +16,7 @@ open class FirstActivity : AppCompatActivity() {
         const val TAG = "FirstActivity"
     }
 
-    @BindViewModel
+    @ViewModel
     lateinit var vm: MyViewModel
 
     @ViewModelFactory(useAsDefault = false)
@@ -25,9 +25,7 @@ open class FirstActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        Scimitar.bind(this)
-
+        scimitar()
         Log.d(TAG, "Vm injected: $vm")
     }
 

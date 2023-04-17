@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="StateLayout">
+        <attr name="state" format="enum">
+            <enum name="loading" value="0" />
+            <enum name="success" value="1" />
+            <enum name="error" value="2" />
+            <enum name="noResults" value="3" />
+        </attr>
+        <attr name="loadingSize" format="dimension" />
+        <attr name="animate" format="boolean" />
+
+        <attr name="ordering" format="enum">
+            <enum name="sequence" value="0" />
+            <enum name="together" value="1" />
+        </attr>
+
+        <attr name="contentEnterAnim" format="enum">
+            <enum name="FadeIn" value="0" />
+            <enum name="SlideUp" value="1" />
+            <enum name="SlideDown" value="2" />
+            <enum name="SlideUpFadeIn" value="3" />
+            <enum name="SlideDownFadeIn" value="4" />
+        </attr>
+
+        <attr name="errorEnterAnim" format="enum">
+            <enum name="FadeIn" value="0" />
+            <enum name="SlideUp" value="1" />
+            <enum name="SlideDown" value="2" />
+            <enum name="SlideUpFadeIn" value="3" />
+            <enum name="SlideDownFadeIn" value="4" />
+        </attr>
+
+        <attr name="errorExitAnim" format="enum">
+            <enum name="FadeOut" value="0" />
+            <enum name="SlideDown" value="1" />
+            <enum name="SlideUp" value="2" />
+            <enum name="SlideDownFadeOut" value="3" />
+            <enum name="SlideUpFadeOut" value="4" />
+        </attr>
+
+        <attr name="loadingExitAnim" format="enum">
+            <enum name="FadeOut" value="0" />
+            <enum name="SlideDown" value="1" />
+            <enum name="SlideUp" value="2" />
+            <enum name="SlideDownFadeOut" value="3" />
+            <enum name="SlideUpFadeOut" value="4" />
+        </attr>
+
+        <attr name="loadingEnterAnim" format="enum">
+            <enum name="FadeIn" value="0" />
+            <enum name="SlideUp" value="1" />
+            <enum name="SlideDown" value="2" />
+            <enum name="SlideUpFadeIn" value="3" />
+            <enum name="SlideDownFadeIn" value="4" />
+        </attr>
+
+        <attr name="noResultsExitAnim" format="enum">
+            <enum name="FadeOut" value="0" />
+            <enum name="SlideDown" value="1" />
+            <enum name="SlideUp" value="2" />
+            <enum name="SlideDownFadeOut" value="3" />
+            <enum name="SlideUpFadeOut" value="4" />
+        </attr>
+
+        <attr name="noResultsEnterAnim" format="enum">
+            <enum name="FadeIn" value="0" />
+            <enum name="SlideUp" value="1" />
+            <enum name="SlideDown" value="2" />
+            <enum name="SlideUpFadeIn" value="3" />
+            <enum name="SlideDownFadeIn" value="4" />
+        </attr>
+
+    </declare-styleable>
+
+    <declare-styleable name="ErrorView">
+        <attr name="errorMsg" format="reference"/>
+        <attr name="errorIcon" format="reference"/>
+        <attr name="buttonText" format="reference"/>
+    </declare-styleable>
+
+</resources>
