@@ -3,16 +3,25 @@ package com.creations.scimitar.activities
 import android.os.Bundle
 import android.util.Log
 import androidx.databinding.DataBindingUtil
-import com.creations.annotations.*
-import com.creations.runtime.state.*
+import com.creations.annotations.BindObserver
+import com.creations.annotations.OnError
+import com.creations.annotations.OnLoading
+import com.creations.annotations.OnNoResults
+import com.creations.annotations.OnSuccess
+import com.creations.annotations.ViewModel
+import com.creations.annotations.ViewModelFactory
+import com.creations.runtime.state.StateError
+import com.creations.runtime.state.StateObserver
+import com.creations.runtime.state.error
+import com.creations.runtime.state.loading
+import com.creations.runtime.state.noResults
+import com.creations.runtime.state.success
 import com.creations.scimitar.R
 import com.creations.scimitar.databinding.ActivityMainBinding
 import com.creations.scimitar.entities.Repo
 import com.creations.scimitar.entities.User
-import com.creations.scimitar.fragments.JavaFragment
 import com.creations.scimitar.vm.MyViewModel
 import com.creations.scimitar.vm.ScimitarViewModelFactory
-import kotlinx.android.synthetic.main.activity_main.*
 
 class ThirdActivity : SecondActivity() {
 
@@ -69,25 +78,25 @@ class ThirdActivity : SecondActivity() {
     @OnSuccess(id = "users")
     fun renderUsers(user: User) {
         Log.d(TAG, "Render user: $user")
-        stateView.state = success(user)
+        db.stateView.state = success(user)
     }
 
     @OnError(id = "users")
     fun renderError(error: StateError) {
         Log.d(TAG, "Show error $error")
-        stateView.state = error(error)
+        db.stateView.state = error(error)
     }
 
     @OnLoading(id = "users")
     fun showLoading() {
         Log.d(TAG, "Show loading")
-        stateView.state = loading()
+        db.stateView.state = loading()
     }
 
     @OnNoResults(id = "users")
     fun showNoResults() {
         Log.d(TAG, "Show no results")
-        stateView.state = noResults()
+        db.stateView.state = noResults()
     }
 
     @OnSuccess(id = "repos")

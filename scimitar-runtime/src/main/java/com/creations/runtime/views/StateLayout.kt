@@ -7,7 +7,9 @@ import android.view.Gravity
 import android.view.View
 import android.view.View.OnClickListener
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.ProgressBar
 import androidx.databinding.BindingAdapter
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
@@ -16,8 +18,6 @@ import com.creations.runtime.anim.*
 import com.creations.runtime.state.State
 import com.creations.runtime.state.Status
 import com.creations.runtime.state.loading
-import kotlinx.android.synthetic.main.async_layout.view.*
-import kotlinx.android.synthetic.main.error_view.view.*
 
 typealias Animator = (target: View, runAfter: (() -> Unit)?) -> Unit
 
@@ -27,7 +27,7 @@ sealed class Ordering {
 }
 
 class StateLayout @JvmOverloads constructor(
-        context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
+    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     private var animate: Boolean = true
@@ -56,13 +56,26 @@ class StateLayout @JvmOverloads constructor(
     var order: Ordering? = null
     var loadingSize: Int = 100.toPx
     var onDetachFromWindow: () -> Unit? = {}
+
+    private val errorButton by lazy {
+        findViewById<Button>(R.id.errorBtn)
+    }
+
+    private val loadingView by lazy {
+        findViewById<ProgressBar>(R.id.loadingView)
+    }
+
+    private val content by lazy {
+        findViewById<ViewGroup>(R.id.content)
+    }
+
     var errorClickListener: View.OnClickListener? = null
         set(value) {
             field = OnClickListener { view ->
                 state = loading()
                 value?.onClick(view)
             }
-            errorBtn.setOnClickListener(field)
+            errorButton.setOnClickListener(field)
         }
 
     private var prevState: State<Any>? = null
@@ -203,7 +216,7 @@ class StateLayout @JvmOverloads constructor(
             super.addView(child, index, params)
             return
         }
-        content?.addView(child, params)
+        content.addView(child, params)
     }
 
     override fun onDetachedFromWindow() {
@@ -257,22 +270,29 @@ class StateLayout @JvmOverloads constructor(
 
     // Run exit animations from previous state.
     private fun runExitAnim(runAfter: () -> Unit = {}) {
-        var pair: Pair<View?, Animator?>? = null
-        when (prevState?.status) {
+        val pair: Pair<View?, Animator?> = when (prevState?.status) {
             Status.Error -> {
-                pair = mErrorView to errorExitAnim
+                mErrorView to errorExitAnim
             }
+
             Status.NoResults -> {
-                pair = mNoResultsView to noResultsExitAnim
+                mNoResultsView to noResultsExitAnim
             }
+
             Status.Loading -> {
-                pair = mLoadingView to loadingExitAnim
+                mLoadingView to loadingExitAnim
+            }
+
+            Status.Success -> {
+                mContentView to loadingExitAnim
+            }
+
+            null -> {
+                mErrorView to errorExitAnim
             }
         }
 
-        if (pair != null) {
-            hideView(pair.first, pair.second, runAfter)
-        }
+        hideView(pair.first, pair.second, runAfter)
     }
 
     private fun runEnterAnim() {
@@ -280,15 +300,20 @@ class StateLayout @JvmOverloads constructor(
             Status.Success -> {
                 showView(mContentView, contentEnterAnim)
             }
+
             Status.Error -> {
                 showView(mErrorView, errorEnterAnim)
             }
+
             Status.NoResults -> {
                 showView(mNoResultsView, noResultsEnterAnim)
             }
+
             Status.Loading -> {
                 showView(mLoadingView, loadingEnterAnim)
             }
+
+            null -> showView(mErrorView, errorEnterAnim)
         }
     }
 }
