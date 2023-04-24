@@ -11,14 +11,12 @@ abstract class StateObserver<D> : Observer<State<D>> {
     open fun onLoading() {}
     open fun onNoResults() {}
 
-    override fun onChanged(@Nullable state: State<D>?) {
-        if (state != null) {
-            when (state.status) {
-                Success -> onSuccess(state.data!!)
-                Error -> onError(state.error!!)
-                NoResults -> onNoResults()
-                Loading -> onLoading()
-            }
+    override fun onChanged(state: State<D>) {
+        when (state.status) {
+            Success -> onSuccess(state.data!!)
+            Error -> onError(state.error!!)
+            NoResults -> onNoResults()
+            Loading -> onLoading()
         }
     }
 }
